@@ -13,7 +13,7 @@ BOT_TOKEN         = os.getenv("BOT_TOKEN")
 ADMIN_USER_ID     = 6840588025
 
 # Client-specific text and links
-WELCOME_IMAGE_URL = "https://i.postimg.cc/FKxMRDnZ/IMG-0728.jpg"
+WELCOME_IMAGE_URL = "https://i.postimg.cc/D038YGC5/IMG-0728.jpg"
 WELCOME_TEXT = (
     "✌️Bom dia tropa!🔥\n"
     "Il Giovane Bandito è pronto per portarti i prodotti della miglior qualità al minor prezzo possibile 🤝"
