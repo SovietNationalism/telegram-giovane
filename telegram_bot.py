@@ -74,9 +74,6 @@ CATEGORIES = [
     ("cannabis_sintetica", "🧪 Cannabis sintetica"),
 ]
 
-# Optional note shown on the menu screen under the keyboard
-MENU_NOTE = "🧪 Cannabis sintetica: 🤫 non rilevabile ai droga test"
-
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
