@@ -169,7 +169,7 @@ class ShopBot:
             "category": "pharma",
             "name": "🍼OSSYRUP😘",
             "caption": (
-                "1 boccetta : 200 ml\n\n"
+                "Ogni boccia contiene 200 ml\n\n"
                 "1 boccia : 60€\n"
                 "3 bocce : 150€ (50€/boccia)\n"
                 "Lean homebrew, prodotta seguendo ricetta originale americana;\n"
@@ -177,7 +177,7 @@ class ShopBot:
                 "Dosaggi:\n"
                 "              🟢basso : 30ml\n"
                 "              🟡medio : 50 ml\n"
-                "              🔴forte : 100 ml (⚠️ dosaggio molto elevato, Attenzoione!)\n\n"
+                "              🔴forte : 100 ml (⚠️ dosaggio molto elevato, fate attenzione!)\n\n"
                 "Dimenticatevi la paracodina o le varie toseina/euphon/makatuassin, poco buone, molto deboli ed estremamente costose, OSSYRUP è il real deal!\n"
                 "spedizione e stealth : 10€"
             ),
