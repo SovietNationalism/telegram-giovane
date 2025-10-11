@@ -10,7 +10,7 @@ from telegram.error import BadRequest
 # ─────────────────────────  CONFIG  ───────────────────────── #
 
 BOT_TOKEN         = os.getenv("BOT_TOKEN")
-ADMIN_USER_IDS    = {6840588025, 1234567890}  # <-- put the second admin's numeric user_id here
+ADMIN_USER_IDS    = {6840588025, 7602444648}  # <-- put the second admin's numeric user_id here
 
 # Client-specific text and links
 WELCOME_IMAGE_URL = "https://i.postimg.cc/D038YGC5/IMG-0728.jpg"
