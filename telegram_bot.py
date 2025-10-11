@@ -76,16 +76,16 @@ class ShopBot:
                 "Inodore ed insapore, usalo ovunque senza che nessuno se ne accorga, oppure aggiungi i tuoi aromi preferiti.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "photo_file_id": "AgACAgQAAxkBAAORaOmu4cp3K785y2A-fac-55vCnZEAAlzJMRtPrVBTESIowOQ_yjABAAMCAAN4AAM2BA",
         },
         "cs_k2_spice": {
             "category": "cannabis_sintetica",
             "name": "🍃 K2 | SPICE 🤯",
             "caption": (
                 "Bags da 3gr:\n"
-                "2 bags : 70€ (35€/bag)\n"
-                "5 bags : 120€ (24€/bag)\n"
-                "10 bags : 180€ (18€/bag)\n\n"
+                "2 bags : 70€ (35€ x bag)\n"
+                "5 bags : 120€ (24€ x bag)\n"
+                "10 bags : 180€ (18€ x bag)\n\n"
                 "L’originale Spice (o K2), leggendaria ed iconica;\n"
                 "Erbe contenenti potenti cannabinoidi sintetici;\n"
                 "Un high simile al classico THC, ma più potente e non rilevabile ai test antidroga.\n"
@@ -123,7 +123,7 @@ class ShopBot:
                 "High forte, euforico e duraturo, down quasi del tutto assente.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "photo_file_id": "AgACAgQAAxkBAAPNaOngF7GAFjTHp5DWapUMrZT9_BMAAmrJMRtPrVBTywr34WofmCABAAMCAAN5AAM2BA",
         },
         "stim_4mmc": {
             "category": "stimolanti",
@@ -138,7 +138,7 @@ class ShopBot:
                 "Ti garantiranno un’euforia inimmaginabile e un immenso aumento di empatia ed amore verso il prossimo.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "photo_file_id": "AgACAgQAAxkBAAPPaOngG9F0f4QvKfqt29vloaIlEP8AAmvJMRtPrVBTiOvQlWUfYc0BAAMCAAN5AAM2BA",
         },
         "stim_nep": {
             "category": "stimolanti",
@@ -258,7 +258,7 @@ class ShopBot:
                 "Fiori ricoperti da hash oil e cristalli di THC.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "photo_file_id": "AgACAgQAAxkBAAPLaOnfwD1Zu2_u5wMo3cWww_nM4ywAAmnJMRtPrVBTnVHKP0UswZcBAAMCAAN4AAM2BA",
         },
         "can_moon_rock": {
             "category": "cannabis",
@@ -273,7 +273,7 @@ class ShopBot:
                 "Fiori ricoperti da hash oil e successivamente di kief.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "video_file_id": "AgACAgQAAxkBAAPHaOnfubuu2-OyqBQgHRwx3puj_NQAAmfJMRtPrVBT1DA48qsI0QoBAAMCAAN4AAM2BA",
         },
     }
         # Track users for broadcast
