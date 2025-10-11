@@ -22,25 +22,16 @@ CONTACT_URL = "https://t.me/GI0VANEBANDIT0"
 REVIEWS_URL = "https://t.me/+x6I1LGcB_OY2MGQ0"
 
 TOS_TEXT = (
-    "effettuando un ordine accetti in automatico ai seguenti termini di servizio\n"
-    "🫣\n"
-    "unico contatto per effettuare ordini: @GI0VANEBANDIT0\n\n"
-    "💰\n"
-    "Unico metodo di pagamento accettato: crypto (solo BTC, LTC e XMR).\n"
-    "In caso di pagamento inferiore a quanto concordato (causa distrazione, commissioni del wallet, valuta sbagliata etc.) sarà proporzionalmente ridotta la quantità di prodotto ordinato.\n\n"
-    "Escrow accettato (solo conosciuti ed affidabili), spese di commissione a carico del cliente.\n\n"
-    "📦\n"
+    "Effettuando un ordine accetti in automatico ai seguenti termini di servizio:\n"
     "Spedizione e stealth a scelta tra InPost, UPS e BRT sempre a 10€ (eccetto il caso in cui sia specificato nell'annuncio 'spedizione gratuita').\n\n"
     "☑️\n"
     "Reship del 100% in caso di pacco smarrito o bloccato per errori del vendor nelle spedizioni tramite corriere (BRT e UPS);\n"
     "Reship del 50% in caso di pacco smarrito o bloccato per errori del vendor nelle spedizioni tramite InPost;\n"
-    "Reship del 100% in caso di pacco manomesso durante la spedizione e privo dei prodotti ordinati (dimostrabile sollo tramite video chiaro e ben visibile del momento del ritiro del pacco e successivamente della sua apertura).\n\n"
+    "Reship del 100% in caso di pacco manomesso durante la spedizione e privo dei prodotti ordinati (dimostrabile solo tramite video chiaro e ben visibile del momento del ritiro del pacco e successivamente della sua apertura).\n\n"
     "Refund del 50% in caso di pacco smarrito o bloccato per errori del vendor nelle spedizioni tramite corriere (BRT e UPS);\n"
     "Nessun refund in caso di pacco smarrito o bloccato per errori del vendor nelle spedizioni tramite InPost;\n"
     "Refund del 50% in caso di pacco manomesso durante la spedizione e privo dei prodotti ordinati (dimostrabile sollo tramite video chiaro e ben visibile del momento del ritiro del pacco e successivamente della sua apertura).\n\n"
     "Reship e refund erogati solo dopo piena certezza del pacco perso (tracking) o manomesso (video).\n\n"
-    "🏷️\n"
-    "Sconto di 10€ sull'ordine successivo se viene effettuata recensione onesta, ben curata e con fotografia."
 )
 
 
