@@ -167,7 +167,7 @@ class ShopBot:
                 "Stampa ‘Hoffman 80th’.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "photo_file_id": "AgACAgQAAxkBAAIBTGjqvZAViZIH6CNVIFjmNvbomS_cAALtyzEb7-5ZUxfFLUhpXXiZAQADAgADeQADNgQ",
         },
         "psy_dmt_cart": {
             "category": "psichedelici",
@@ -181,7 +181,7 @@ class ShopBot:
                 "È compresa nel prezzo anche la batteria ricaricabile e dal voltaggio regolabile per poter iniziare da subito.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "photo_file_id": "AgACAgQAAxkBAAIBTmjqvZNeLyckRDFPqLI3OXh-Nu_oAALvyzEb7-5ZUyVwgVoU1cwjAQADAgADeQADNgQ",
         },
     
         # cannabis
@@ -199,7 +199,7 @@ class ShopBot:
                 "Profilo dolce e goloso; effetti edificanti e stimolanti.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "video_file_id": "BAACAgQAAxkBAAIBUGjqvh9VCFR1_dpUOGpSLbIG_ZOVAALPFwAC7-5ZU_THw9wOkhl1NgQ",
         },
         "can_svapo_thc_2ml": {
             "category": "cannabis",
@@ -217,7 +217,7 @@ class ShopBot:
                 " - Gobstopper Gumdrop\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "photo_file_id": "AgACAgQAAxkBAAIBVGjqvnO3xJniDk1Huj6JnEGii8ymAALyyzEb7-5ZUzQprivCR4gnAQADAgADeAADNgQ",
         },
         "can_fruit_bert": {
             "category": "cannabis",
@@ -230,7 +230,7 @@ class ShopBot:
                 "Ideale per gli amanti dei sapori fruttati, effetti euforici ed energizzanti.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "photo_file_id": "AgACAgQAAxkBAAIBUmjqvmTA89vDQ4MON4_NIISpz9uqAALxyzEb7-5ZU68V9S2QBG79AQADAgADeAADNgQ",
         },
         "can_cookies_kush": {
             "category": "cannabis",
@@ -243,7 +243,7 @@ class ShopBot:
                 "Dominanza indica, relax mentale e fisico; aromi dolci e terrosi.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "photo_file_id": "AgACAgQAAxkBAAPJaOnfu3lv2bCJkrkwvzSehP2UoOwAAmjJMRtPrVBTq9c17b1tJdsBAAMCAAN4AAM2BA",
         },
         "can_ice_rock": {
             "category": "cannabis",
