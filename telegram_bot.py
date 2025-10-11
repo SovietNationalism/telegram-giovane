@@ -147,7 +147,7 @@ class ShopBot:
                 "Ogni spruzzo eroga circa 25mg di principio attivo (di grado farmaceutico).\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": "AgACAgQAAxkBAAIB12jq0H4D4pse5-c0s-yirJenQgpcAAIszDEb7-5ZU5HmAa-PqGKbAQADAgADeQADNgQ",
+            "photo_file_id": "AgACAgQAAxkBAAIB12jq0H4D4pse5-c0s-yirJenQgpcAAIszDEb7-5ZU5HmAa-PqGKbAQADAgADeQADNgQ",
         },
         "syn_keta_needles": {
             "category": "sintetiche",
@@ -353,9 +353,8 @@ class ShopBot:
             "photo_file_id": "AgACAgQAAxkBAAPHaOnfubuu2-OyqBQgHRwx3puj_NQAAmfJMRtPrVBT1DA48qsI0QoBAAMCAAN4AAM2BA",
         },
     }
-    
-    self._uids_lock = asyncio.Lock()
-    self.user_ids = self._load_user_ids()
+        self._uids_lock = asyncio.Lock()
+        self.user_ids = self._load_user_ids()
     
     async def _send_protected_photo(self, bot, chat_id, photo, caption, reply_markup):
         return await bot.send_photo(
