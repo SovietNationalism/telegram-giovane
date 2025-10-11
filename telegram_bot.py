@@ -287,7 +287,7 @@ class ShopBot:
             await context.bot.send_message(ADMIN_USER_ID, message)
         except Exception as e:
             logger.warning(f"Failed to relay to admin: {e}")
-
+            
     async def delete_last_menu(self, context, chat_id):
         msg_id = context.user_data.get("last_menu_msg_id")
         if msg_id:
@@ -296,39 +296,37 @@ class ShopBot:
             except:
                 pass
             context.user_data["last_menu_msg_id"] = None
-       
-        # ────────────────────────  KEYBOARDS  ──────────────────────── #
-        def home_keyboard(self) -> InlineKeyboardMarkup:
-            kb = [
-                [InlineKeyboardButton("🛍️ Menù", callback_data="menu")],
-                [InlineKeyboardButton("⭐️ Recensioni", url=REVIEWS_URL)],
-                [InlineKeyboardButton("🔌 Contatto", url=CONTACT_URL)],
-                [InlineKeyboardButton("💰 Pagamenti", callback_data="payments")],
-                [InlineKeyboardButton("🏷️ Promo", callback_data="promo")],
-                [InlineKeyboardButton("📋 T.O.S", callback_data="tos")],
-            ]
-            return InlineKeyboardMarkup(kb)
-    
-        def categories_keyboard(self) -> InlineKeyboardMarkup:
-            rows = []
-            row = []
-            for key, label in CATEGORIES:
-                row.append(InlineKeyboardButton(label, callback_data=f"cat_{key}"))
-                if len(row) == 2:
-                    rows.append(row)
-                    row = []
-            if row:
-                rows.append(row)
-            rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="back_to_home")])
-            return InlineKeyboardMarkup(rows)
-    
-        def products_keyboard(self, cat_key: str):
-            prod_rows = []
-            for pid, p in self.products.items():
-                if p.get("category") == cat_key:
-                    prod_rows.append([InlineKeyboardButton(p.get("name", f"Prodotto {pid}"), callback_data=f"product_{pid}")])
-            prod_rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="menu")])
-            return InlineKeyboardMarkup(prod_rows)
+
+    # ────────────────────────  KEYBOARDS  ──────────────────────── #
+    def home_keyboard(self) -> InlineKeyboardMarkup:
+        kb = [
+            [InlineKeyboardButton("🛍️ Menù", callback_data="menu")],
+            [InlineKeyboardButton("⭐️ Recensioni", url=REVIEWS_URL)],
+            [InlineKeyboardButton("🔌 Contatto", url=CONTACT_URL)],
+            [InlineKeyboardButton("💰 Pagamenti", callback_data="payments")],
+            [InlineKeyboardButton("🏷️ Promo", callback_data="promo")],
+            [InlineKeyboardButton("📋 T.O.S", callback_data="tos")],
+        ]
+        return InlineKeyboardMarkup(kb)
+
+    def categories_keyboard(self) -> InlineKeyboardMarkup:
+        rows, row = [], []
+        for key, label in CATEGORIES:
+            row.append(InlineKeyboardButton(label, callback_data=f"cat_{key}"))
+            if len(row) == 2:
+                rows.append(row); row = []
+        if row:
+            rows.append(row)
+        rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="back_to_home")])
+        return InlineKeyboardMarkup(rows)
+
+    def products_keyboard(self, cat_key: str):
+        prod_rows = []
+        for pid, p in self.products.items():
+            if p.get("category") == cat_key:
+                prod_rows.append([InlineKeyboardButton(p.get("name", f"Prodotto {pid}"), callback_data=f"product_{pid}")])
+        prod_rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="menu")])
+        return InlineKeyboardMarkup(prod_rows)
 
     # ────────────────────────  COMMANDS  ──────────────────────── #
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
