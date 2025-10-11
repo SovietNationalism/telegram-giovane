@@ -569,7 +569,6 @@ class ShopBot:
             back_cb = f"cat_{cat_key}" if cat_key else "menu"
             if cat_key == "pharma":
                 kb_rows = [
-                    [InlineKeyboardButton("🔌 Contatto", url=CONTACT_URL)],
                     [InlineKeyboardButton("⬅️ Indietro", callback_data=back_cb)],
                 ]
             else:
