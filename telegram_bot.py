@@ -34,8 +34,6 @@ TOS_TEXT = (
     "Reship e refund erogati solo dopo piena certezza del pacco perso (tracking) o manomesso (video).\n\n"
 )
 
-
-# Categories requested by the client
 CATEGORIES = [
     ("cannabis", "🍃 Cannabis"),
     ("psichedelici", "🎆 Psichedelici"),
@@ -506,16 +504,24 @@ class ShopBot:
         if d.startswith("cat_"):
             cat_key = d.split("_", 1)[1]
 
-            # Special Pharma info page
+            # Special Pharma submenu: syrup + DM + back
             if cat_key == "pharma":
-                kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="menu")]]
+                rows = []
+                # product button (ensure the key matches your product id below)
+                if "ph_ossyrup" in self.products:
+                    rows.append([InlineKeyboardButton(self.products["ph_ossyrup"]["name"], callback_data="product_ph_ossyrup")])
+                # dm/info button
+                rows.append([InlineKeyboardButton("🤫 Per più info", url=CONTACT_URL)])
+                # back
+                rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="menu")])
                 sent = await context.bot.send_message(
                     chat_id=cid,
-                    text="🤫 per più info: @GI0VANEBANDIT0",
-                    reply_markup=InlineKeyboardMarkup(kb)
+                    text="💊 Pharma — seleziona un’opzione:",
+                    reply_markup=InlineKeyboardMarkup(rows)
                 )
                 context.user_data["last_menu_msg_id"] = sent.message_id
                 return
+
 
             # Normal category flow
             has_any = any(p.get("category") == cat_key for p in self.products.values())
