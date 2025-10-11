@@ -30,7 +30,7 @@ TOS_TEXT = (
     "Reship del 100% in caso di pacco manomesso durante la spedizione e privo dei prodotti ordinati (dimostrabile solo tramite video chiaro e ben visibile del momento del ritiro del pacco e successivamente della sua apertura).\n\n"
     "Refund del 50% in caso di pacco smarrito o bloccato per errori del vendor nelle spedizioni tramite corriere (BRT e UPS);\n"
     "Nessun refund in caso di pacco smarrito o bloccato per errori del vendor nelle spedizioni tramite InPost;\n"
-    "Refund del 50% in caso di pacco manomesso durante la spedizione e privo dei prodotti ordinati (dimostrabile sollo tramite video chiaro e ben visibile del momento del ritiro del pacco e successivamente della sua apertura).\n\n"
+    "Refund del 50% in caso di pacco manomesso durante la spedizione e privo dei prodotti ordinati (dimostrabile solo tramite video chiaro e ben visibile del momento del ritiro del pacco e successivamente della sua apertura).\n\n"
     "Reship e refund erogati solo dopo piena certezza del pacco perso (tracking) o manomesso (video).\n\n"
 )
 
