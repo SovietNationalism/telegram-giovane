@@ -150,7 +150,7 @@ class ShopBot:
                 "Ogni spruzzo eroga circa 25mg di principio attivo (di grado farmaceutico).\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "video_file_id": "AgACAgQAAxkBAAIB12jq0H4D4pse5-c0s-yirJenQgpcAAIszDEb7-5ZU5HmAa-PqGKbAQADAgADeQADNgQ",
         },
         "syn_keta_needles": {
             "category": "sintetiche",
@@ -165,7 +165,7 @@ class ShopBot:
                 "Andate piano con i dosaggi, è molto pura.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "photo_file_id": "AgACAgQAAxkBAAIB1Wjq0HrDmB5HhEJZlTx9QlBaLYUQAAIrzDEb7-5ZU5Av8hgm7wjMAQADAgADeQADNgQ",
         },
         
         # pharma #
