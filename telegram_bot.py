@@ -296,7 +296,7 @@ class ShopBot:
             except:
                 pass
             context.user_data["last_menu_msg_id"] = None
-
+       
         # ────────────────────────  KEYBOARDS  ──────────────────────── #
         def home_keyboard(self) -> InlineKeyboardMarkup:
             kb = [
@@ -329,7 +329,7 @@ class ShopBot:
                     prod_rows.append([InlineKeyboardButton(p.get("name", f"Prodotto {pid}"), callback_data=f"product_{pid}")])
             prod_rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="menu")])
             return InlineKeyboardMarkup(prod_rows)
-    
+
     # ────────────────────────  COMMANDS  ──────────────────────── #
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self.user_ids.add(update.effective_user.id)
