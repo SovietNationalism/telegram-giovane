@@ -498,33 +498,6 @@ class ShopBot:
                         chat_id=cid, text=caption, parse_mode=ParseMode.MARKDOWN, reply_markup=kb_back
                     )
                     context.user_data["last_menu_msg_id"] = sent.message_id
-            else:
-                sent = await context.bot.send_message(
-                    chat_id=cid, text=caption, parse_mode=ParseMode.MARKDOWN, reply_markup=kb_back
-                )
-                context.user_data["last_menu_msg_id"] = sent.message_id
-            return
-            
-                        cat_key = prod.get("category") or ""
-            back_cb = f"cat_{cat_key}" if cat_key else "menu"
-            kb_back = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Indietro", callback_data=back_cb)]])
-
-            if prod.get("video_file_id"):
-                try:
-                    sent = await context.bot.send_video(
-                        chat_id=cid,
-                        video=prod["video_file_id"],
-                        caption=caption,
-                        parse_mode=ParseMode.MARKDOWN,
-                        supports_streaming=True,
-                        reply_markup=kb_back
-                    )
-                    context.user_data["last_menu_msg_id"] = sent.message_id
-                except BadRequest:
-                    sent = await context.bot.send_message(
-                        chat_id=cid, text=caption, parse_mode=ParseMode.MARKDOWN, reply_markup=kb_back
-                    )
-                    context.user_data["last_menu_msg_id"] = sent.message_id
             elif prod.get("photo_file_id"):
                 try:
                     sent = await context.bot.send_photo(
@@ -546,7 +519,6 @@ class ShopBot:
                 )
                 context.user_data["last_menu_msg_id"] = sent.message_id
             return
-
 
     # ────────────────────────  MESSAGES  ──────────────────────── #
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
