@@ -72,7 +72,7 @@ class ShopBot:
         # cannabis_sintetica
         "cs_liquido": {
             "category": "cannabis_sintetica",
-            "name": "🍃 Liquido per svapo — CANNABIS SYNTH 😶‍🌫️😵‍💫",
+            "name": "🍃 Liquido svapo THC synth 😶‍🌫️😵‍💫",
             "caption": (
                 "50 ml : 200€ (4€/ml)\n"
                 "100 ml : 350€ (3.5€/ml)\n"
@@ -113,7 +113,7 @@ class ShopBot:
                 "Stesso sballo del classico THC ma più potente e non rilevabile dai test antidroga.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "video_file_id": "AgACAgQAAxkBAANnaOmuH2n7mTJxl7UhebhyPHXJ4yUAAlrJMRtPrVBTeNSJdNF_rVABAAMCAAN4AAM2BA",
         },
     
         # stimolanti
