@@ -297,41 +297,39 @@ class ShopBot:
                 pass
             context.user_data["last_menu_msg_id"] = None
 
-    # ────────────────────────  KEYBOARDS  ──────────────────────── #
+        # ────────────────────────  KEYBOARDS  ──────────────────────── #
         def home_keyboard(self) -> InlineKeyboardMarkup:
-        kb = [
-            [InlineKeyboardButton("🛍️ Menù", callback_data="menu")],
-            [InlineKeyboardButton("⭐️ Recensioni", url=REVIEWS_URL)],
-            [InlineKeyboardButton("🔌 Contatto", url=CONTACT_URL)],
-            [InlineKeyboardButton("💰 Pagamenti", callback_data="payments")],
-            [InlineKeyboardButton("🏷️ Promo", callback_data="promo")],
-            [InlineKeyboardButton("📋 T.O.S", callback_data="tos")],
-        ]
-        return InlineKeyboardMarkup(kb)
-
-    def categories_keyboard(self) -> InlineKeyboardMarkup:
-        rows = []
-        row = []
-        for key, label in CATEGORIES:
-            row.append(InlineKeyboardButton(label, callback_data=f"cat_{key}"))
-            if len(row) == 2:
+            kb = [
+                [InlineKeyboardButton("🛍️ Menù", callback_data="menu")],
+                [InlineKeyboardButton("⭐️ Recensioni", url=REVIEWS_URL)],
+                [InlineKeyboardButton("🔌 Contatto", url=CONTACT_URL)],
+                [InlineKeyboardButton("💰 Pagamenti", callback_data="payments")],
+                [InlineKeyboardButton("🏷️ Promo", callback_data="promo")],
+                [InlineKeyboardButton("📋 T.O.S", callback_data="tos")],
+            ]
+            return InlineKeyboardMarkup(kb)
+    
+        def categories_keyboard(self) -> InlineKeyboardMarkup:
+            rows = []
+            row = []
+            for key, label in CATEGORIES:
+                row.append(InlineKeyboardButton(label, callback_data=f"cat_{key}"))
+                if len(row) == 2:
+                    rows.append(row)
+                    row = []
+            if row:
                 rows.append(row)
-                row = []
-        if row:
-            rows.append(row)
-        rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="back_to_home")])
-        return InlineKeyboardMarkup(rows)
-
-    def products_keyboard(self, cat_key: str):
-        # Build a list of products in category
-        prod_rows = []
-        for pid, p in self.products.items():
-            if p.get("category") == cat_key:
-                prod_rows.append([InlineKeyboardButton(p.get("name", f"Prodotto {pid}"), callback_data=f"product_{pid}")])
-        # Add back
-        prod_rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="menu")])
-        return InlineKeyboardMarkup(prod_rows)
-
+            rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="back_to_home")])
+            return InlineKeyboardMarkup(rows)
+    
+        def products_keyboard(self, cat_key: str):
+            prod_rows = []
+            for pid, p in self.products.items():
+                if p.get("category") == cat_key:
+                    prod_rows.append([InlineKeyboardButton(p.get("name", f"Prodotto {pid}"), callback_data=f"product_{pid}")])
+            prod_rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="menu")])
+            return InlineKeyboardMarkup(prod_rows)
+    
     # ────────────────────────  COMMANDS  ──────────────────────── #
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         self.user_ids.add(update.effective_user.id)
@@ -390,7 +388,7 @@ class ShopBot:
             context.user_data["last_menu_msg_id"] = sent.message_id
             return
             
-                if d == "payments":
+        if d == "payments":
             kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="back_to_home")]]
             sent = await context.bot.send_message(
                 chat_id=cid,
@@ -424,53 +422,40 @@ class ShopBot:
             )
             context.user_data["last_menu_msg_id"] = sent.message_id
             return
-            
-        cat_key = d.split("_", 1)[1]
-        if cat_key == "pharma":
-            kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="menu")]]
-            sent = await context.bot.send_message(
-                chat_id=cid,
-                text="🤫 per più info: @GI0VANEBANDIT0",
-                reply_markup=InlineKeyboardMarkup(kb)
-            )
-            context.user_data["last_menu_msg_id"] = sent.message_id
+
+        # ---------- CATEGORIA ---------- #
+        if d.startswith("cat_"):
+            cat_key = d.split("_", 1)[1]
+
+            # Special Pharma info page
+            if cat_key == "pharma":
+                kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="menu")]]
+                sent = await context.bot.send_message(
+                    chat_id=cid,
+                    text="🤫 per più info: @GI0VANEBANDIT0",
+                    reply_markup=InlineKeyboardMarkup(kb)
+                )
+                context.user_data["last_menu_msg_id"] = sent.message_id
+                return
+
+            # Normal category flow
+            has_any = any(p.get("category") == cat_key for p in self.products.values())
+            if has_any:
+                sent = await context.bot.send_message(
+                    chat_id=cid,
+                    text=f"{dict(CATEGORIES).get(cat_key, cat_key)} — Elenco prodotti:",
+                    reply_markup=self.products_keyboard(cat_key)
+                )
+                context.user_data["last_menu_msg_id"] = sent.message_id
+            else:
+                kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="menu")]]
+                sent = await context.bot.send_message(
+                    chat_id=cid,
+                    text=f"{dict(CATEGORIES).get(cat_key, cat_key)}\n\nNessun prodotto in questa categoria al momento.",
+                    reply_markup=InlineKeyboardMarkup(kb)
+                )
+                context.user_data["last_menu_msg_id"] = sent.message_id
             return
-
-          
-
-                # ---------- CATEGORIA ---------- #
-                if d.startswith("cat_"):
-                    cat_key = d.split("_", 1)[1]
-        
-                    # Special Pharma info page
-                    if cat_key == "pharma":
-                        kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="menu")]]
-                        sent = await context.bot.send_message(
-                            chat_id=cid,
-                            text="🤫 per più info: @GI0VANEBANDIT0",
-                            reply_markup=InlineKeyboardMarkup(kb)
-                        )
-                        context.user_data["last_menu_msg_id"] = sent.message_id
-                        return
-        
-                    # Normal category flow
-                    has_any = any(p.get("category") == cat_key for p in self.products.values())
-                    if has_any:
-                        sent = await context.bot.send_message(
-                            chat_id=cid,
-                            text=f"{dict(CATEGORIES).get(cat_key, cat_key)} — Elenco prodotti:",
-                            reply_markup=self.products_keyboard(cat_key)
-                        )
-                        context.user_data["last_menu_msg_id"] = sent.message_id
-                    else:
-                        kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="menu")]]
-                        sent = await context.bot.send_message(
-                            chat_id=cid,
-                            text=f"{dict(CATEGORIES).get(cat_key, cat_key)}\n\nNessun prodotto in questa categoria al momento.",
-                            reply_markup=InlineKeyboardMarkup(kb)
-                        )
-                        context.user_data["last_menu_msg_id"] = sent.message_id
-                    return
 
         # ---------- PRODOTTO ---------- #
         if d.startswith("product_"):
