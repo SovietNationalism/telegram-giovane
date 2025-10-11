@@ -405,6 +405,19 @@ class ShopBot:
             )
             context.user_data["last_menu_msg_id"] = sent.message_id
             return
+            
+        cat_key = d.split("_", 1)[1]
+        if cat_key == "pharma":
+            kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="menu")]]
+            sent = await context.bot.send_message(
+                chat_id=cid,
+                text="🤫 per più info: @GI0VANEBANDIT0",
+                reply_markup=InlineKeyboardMarkup(kb)
+            )
+            context.user_data["last_menu_msg_id"] = sent.message_id
+            return
+
+          
 
         # ---------- CATEGORIA ---------- #
         if d.startswith("cat_"):
