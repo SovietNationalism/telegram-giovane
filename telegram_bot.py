@@ -99,7 +99,7 @@ class ShopBot:
                 "Un high simile al classico THC, ma più potente e non rilevabile ai test antidroga.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "photo_file_id": "AgACAgQAAxkBAAN_aOmui4fOVZ838yEV4qJIbfCJ18QAAlvJMRtPrVBTbCZFNWjvp_kBAAMCAAN4AAM2BA",
         },
         "cs_synth_weed": {
             "category": "cannabis_sintetica",
@@ -113,7 +113,7 @@ class ShopBot:
                 "Stesso sballo del classico THC ma più potente e non rilevabile dai test antidroga.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": "AgACAgQAAxkBAANnaOmuH2n7mTJxl7UhebhyPHXJ4yUAAlrJMRtPrVBTeNSJdNF_rVABAAMCAAN4AAM2BA",
+            "photo_file_id": "AgACAgQAAxkBAANnaOmuH2n7mTJxl7UhebhyPHXJ4yUAAlrJMRtPrVBTeNSJdNF_rVABAAMCAAN4AAM2BA",
         },
     
         # stimolanti
