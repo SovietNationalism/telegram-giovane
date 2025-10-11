@@ -107,7 +107,87 @@ class ShopBot:
             ),
             "photo_file_id": "AgACAgQAAxkBAANnaOmuH2n7mTJxl7UhebhyPHXJ4yUAAlrJMRtPrVBTeNSJdNF_rVABAAMCAAN4AAM2BA",
         },
-    
+        
+        # synth
+        "syn_mdma_champ": {
+            "category": "sintetiche",
+            "name": "🍾MDMA Champagne😍🥂",
+            "caption": (
+                "1 gr : 30€\n"
+                "3 gr : 60€ (20€/gr)\n"
+                "10 gr : 150€ (15€/gr)\n"
+                "20 gr : 220€ (11€/gr)\n"
+                "50 gr : 400€ (8€/gr)\n"
+                "100 gr : 600€ (6€/gr)\n\n"
+                "MDMA Champagne, prodotto nei migliori laboratori olandesi;\n"
+                "Cristalli puliti e puri, elevata potenza (purezza del 87%).\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "syn_tucibi": {
+            "category": "sintetiche",
+            "name": "👛TUCIBI | C0CA ROSA💕",
+            "caption": (
+                "1 gr : 50€\n"
+                "3 gr : 120€ (40€/gr)\n"
+                "5 gr : 175€ (35€/gr)\n"
+                "10 gr : 300€ (30€/gr)\n\n"
+                "Direttamente dalla Colombia;\n"
+                "Un mix, prodotto secondo la ricetta originale: 2c-b, keta, mdma e coca;\n"
+                "Effetti magici, stimolanti e psichedelici.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "syn_keta_spray": {
+            "category": "sintetiche",
+            "name": "👨‍⚕️spray nasale K3TAM1NA🚨🆕",
+            "caption": (
+                "10 ml (100 spruzzi) : 90€\n"
+                "30 ml (300 spruzzi) : 140€\n\n"
+                "Pratica, veloce, discreta, delicata per il naso e facilissima da dosare.\n"
+                "Ogni spruzzo eroga circa 25mg di principio attivo (di grado farmaceutico).\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "syn_keta_needles": {
+            "category": "sintetiche",
+            "name": "❄️K3TAM1NA needles🐴 — isomero-S",
+            "caption": (
+                "2 gr : 30€ (15€/gr)\n"
+                "5 gr : 60€ (12€/gr)\n"
+                "10 gr : 90€ (9€/gr)\n"
+                "25 gr : 150€ (6€/gr)\n"
+                "50 gr : 250€ (5€/gr)\n\n"
+                "Aghetti di prima qualità, puri e privi di taglio; Prezzo più basso in Italia!\n"
+                "Andate piano con i dosaggi, è molto pura.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        
+        # pharma #
+        "ph_ossyrup": {
+            "category": "pharma",
+            "name": "🍼OSSYRUP😘",
+            "caption": (
+                "1 boccetta : 200 ml\n\n"
+                "1 boccia : 60€\n"
+                "3 bocce : 150€ (50€/boccia)\n"
+                "Lean homebrew, prodotta seguendo ricetta originale americana;\n"
+                "Sciroppo viola, al gusto di fragola 🍓 e lamponi 🍇, contenente 0xi ed antistaminico;\n"
+                "Dosaggi:\n"
+                "              🟢basso : 30ml\n"
+                "              🟡medio : 50 ml\n"
+                "              🔴forte : 100 ml (⚠️ dosaggio molto elevato, Attenzoione!)\n\n"
+                "Dimenticatevi la paracodina o le varie toseina/euphon/makatuassin, poco buone, molto deboli ed estremamente costose, OSSYRUP è il real deal!\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+
         # stimolanti
         "stim_boliviana": {
             "category": "stimolanti",
@@ -273,7 +353,7 @@ class ShopBot:
                 "Fiori ricoperti da hash oil e successivamente di kief.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": "AgACAgQAAxkBAAPHaOnfubuu2-OyqBQgHRwx3puj_NQAAmfJMRtPrVBT1DA48qsI0QoBAAMCAAN4AAM2BA",
+            "photo_file_id": "AgACAgQAAxkBAAPHaOnfubuu2-OyqBQgHRwx3puj_NQAAmfJMRtPrVBT1DA48qsI0QoBAAMCAAN4AAM2BA",
         },
     }
         # Track users for broadcast
@@ -371,7 +451,7 @@ class ShopBot:
 
         await q.answer()
 
-        if update.effective_user.id not in ADMIN_USER_IDS:
+    if update.effective_user.id not in ADMIN_USER_IDS:
     await self._relay_to_admin(context, update.effective_user, f"Pressed button: {d}")
 
         await self.delete_last_menu(context, cid)
@@ -440,9 +520,11 @@ class ShopBot:
             # Normal category flow
             has_any = any(p.get("category") == cat_key for p in self.products.values())
             if has_any:
+                title = dict(CATEGORIES).get(cat_key, cat_key)
+                extra = "\n\nEffetti analoghi al THC delta 9 senza essere rilevabili da test antidroga." if cat_key == "cannabis_sintetica" else ""
                 sent = await context.bot.send_message(
                     chat_id=cid,
-                    text=f"{dict(CATEGORIES).get(cat_key, cat_key)} — Elenco prodotti:",
+                    text=f"{title} — Prodotti disponibili:{extra}",
                     reply_markup=self.products_keyboard(cat_key)
                 )
                 context.user_data["last_menu_msg_id"] = sent.message_id
@@ -479,8 +561,16 @@ class ShopBot:
 
             cat_key = prod.get("category") or ""
             back_cb = f"cat_{cat_key}" if cat_key else "menu"
-            kb_back = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Indietro", callback_data=back_cb)]])
-
+            if cat_key == "pharma":
+                kb_rows = [
+                    [InlineKeyboardButton("🔌 Contatto", url=CONTACT_URL)],
+                    [InlineKeyboardButton("⬅️ Indietro", callback_data=back_cb)],
+                ]
+            else:
+                kb_rows = [[InlineKeyboardButton("⬅️ Indietro", callback_data=back_cb)]]
+            kb_back = InlineKeyboardMarkup(kb_rows)
+            
+            
             if prod.get("video_file_id"):
                 try:
                     sent = await context.bot.send_video(
@@ -525,7 +615,7 @@ class ShopBot:
         usr = update.effective_user
         self.user_ids.add(usr.id)
 
-        if usr and usr.id != ADMIN_USER_ID:
+        if usr and usr.id not in ADMIN_USER_IDS: 
             txt = (
                 m.text or m.caption or
                 (f"<{type(m.effective_attachment).__name__}>" if m.effective_attachment else "<no text>")
