@@ -448,14 +448,14 @@ class ShopBot:
         d   = q.data
         cid = q.message.chat.id
         self.user_ids.add(update.effective_user.id)
-
+    
         await q.answer()
-
-    if update.effective_user.id not in ADMIN_USER_IDS:
-    await self._relay_to_admin(context, update.effective_user, f"Pressed button: {d}")
-
+    
+        if update.effective_user.id not in ADMIN_USER_IDS:
+            await self._relay_to_admin(context, update.effective_user, f"Pressed button: {d}")
+    
         await self.delete_last_menu(context, cid)
-
+        
         # ---------- HOME NAV ---------- #
         if d == "back_to_home":
             await self.start(update, context)
