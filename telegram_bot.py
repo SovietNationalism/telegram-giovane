@@ -183,7 +183,7 @@ class ShopBot:
                 "Dimenticatevi la paracodina o le varie toseina/euphon/makatuassin, poco buone, molto deboli ed estremamente costose, OSSYRUP è il real deal!\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": None,
+            "video_file_id": "BAACAgQAAxkBAAIBjGjqy32Nw8xXKYeN_8CFSeyaoEOtAALdFwAC7-5ZU7e7OyMM76sRNgQ",
         },
 
         # stimolanti
