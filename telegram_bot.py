@@ -43,6 +43,7 @@ TOS_TEXT = (
     "Sconto di 10€ sull'ordine successivo se viene effettuata recensione onesta, ben curata e con fotografia."
 )
 
+
 # Categories requested by the client
 CATEGORIES = [
     ("cannabis", "🍃 Cannabis"),
@@ -306,11 +307,13 @@ class ShopBot:
             context.user_data["last_menu_msg_id"] = None
 
     # ────────────────────────  KEYBOARDS  ──────────────────────── #
-    def home_keyboard(self) -> InlineKeyboardMarkup:
+        def home_keyboard(self) -> InlineKeyboardMarkup:
         kb = [
             [InlineKeyboardButton("🛍️ Menù", callback_data="menu")],
             [InlineKeyboardButton("⭐️ Recensioni", url=REVIEWS_URL)],
             [InlineKeyboardButton("🔌 Contatto", url=CONTACT_URL)],
+            [InlineKeyboardButton("💰 Pagamenti", callback_data="payments")],
+            [InlineKeyboardButton("🏷️ Promo", callback_data="promo")],
             [InlineKeyboardButton("📋 T.O.S", callback_data="tos")],
         ]
         return InlineKeyboardMarkup(kb)
@@ -395,6 +398,31 @@ class ShopBot:
             sent = await context.bot.send_message(chat_id=cid, text=TOS_TEXT, reply_markup=InlineKeyboardMarkup(kb))
             context.user_data["last_menu_msg_id"] = sent.message_id
             return
+            
+                if d == "payments":
+            kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="back_to_home")]]
+            sent = await context.bot.send_message(
+                chat_id=cid,
+                text=(
+                    "💰 Pagamenti\n\n"
+                    "Unico metodo di pagamento accettato: crypto (solo BTC, LTC e XMR).\n"
+                    "Escrow accettato (solo conosciuti ed affidabili), spese di commissione a carico del cliente.\n\n"
+                    "📦 Spedizione & stealth: 10€ con InPost, UPS o BRT."
+                ),
+                reply_markup=InlineKeyboardMarkup(kb)
+            )
+            context.user_data["last_menu_msg_id"] = sent.message_id
+            return
+
+        if d == "promo":
+            kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="back_to_home")]]
+            sent = await context.bot.send_message(
+                chat_id=cid,
+                text="🏷️ Promo\n\nSconto di 10€ sull'ordine successivo se viene effettuata recensione onesta, ben curata e con fotografia.",
+                reply_markup=InlineKeyboardMarkup(kb)
+            )
+            context.user_data["last_menu_msg_id"] = sent.message_id
+            return
 
         # ---------- MENU ---------- #
         if d == "menu":
@@ -419,27 +447,39 @@ class ShopBot:
 
           
 
-        # ---------- CATEGORIA ---------- #
-        if d.startswith("cat_"):
-            cat_key = d.split("_", 1)[1]
-            # If products exist, show list; else show placeholder with back
-            has_any = any(p.get("category") == cat_key for p in self.products.values())
-            if has_any:
-                sent = await context.bot.send_message(
-                    chat_id=cid,
-                    text=f"{dict(CATEGORIES).get(cat_key, cat_key)} — Elenco prodotti:",
-                    reply_markup=self.products_keyboard(cat_key)
-                )
-                context.user_data["last_menu_msg_id"] = sent.message_id
-            else:
-                kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="menu")]]
-                sent = await context.bot.send_message(
-                    chat_id=cid,
-                    text=f"{dict(CATEGORIES).get(cat_key, cat_key)}\n\nNessun prodotto in questa categoria al momento.",
-                    reply_markup=InlineKeyboardMarkup(kb)
-                )
-                context.user_data["last_menu_msg_id"] = sent.message_id
-            return
+                # ---------- CATEGORIA ---------- #
+                if d.startswith("cat_"):
+                    cat_key = d.split("_", 1)[1]
+        
+                    # Special Pharma info page
+                    if cat_key == "pharma":
+                        kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="menu")]]
+                        sent = await context.bot.send_message(
+                            chat_id=cid,
+                            text="🤫 per più info: @GI0VANEBANDIT0",
+                            reply_markup=InlineKeyboardMarkup(kb)
+                        )
+                        context.user_data["last_menu_msg_id"] = sent.message_id
+                        return
+        
+                    # Normal category flow
+                    has_any = any(p.get("category") == cat_key for p in self.products.values())
+                    if has_any:
+                        sent = await context.bot.send_message(
+                            chat_id=cid,
+                            text=f"{dict(CATEGORIES).get(cat_key, cat_key)} — Elenco prodotti:",
+                            reply_markup=self.products_keyboard(cat_key)
+                        )
+                        context.user_data["last_menu_msg_id"] = sent.message_id
+                    else:
+                        kb = [[InlineKeyboardButton("⬅️ Indietro", callback_data="menu")]]
+                        sent = await context.bot.send_message(
+                            chat_id=cid,
+                            text=f"{dict(CATEGORIES).get(cat_key, cat_key)}\n\nNessun prodotto in questa categoria al momento.",
+                            reply_markup=InlineKeyboardMarkup(kb)
+                        )
+                        context.user_data["last_menu_msg_id"] = sent.message_id
+                    return
 
         # ---------- PRODOTTO ---------- #
         if d.startswith("product_"):
@@ -488,6 +528,49 @@ class ShopBot:
                 )
                 context.user_data["last_menu_msg_id"] = sent.message_id
             return
+            
+                        cat_key = prod.get("category") or ""
+            back_cb = f"cat_{cat_key}" if cat_key else "menu"
+            kb_back = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Indietro", callback_data=back_cb)]])
+
+            if prod.get("video_file_id"):
+                try:
+                    sent = await context.bot.send_video(
+                        chat_id=cid,
+                        video=prod["video_file_id"],
+                        caption=caption,
+                        parse_mode=ParseMode.MARKDOWN,
+                        supports_streaming=True,
+                        reply_markup=kb_back
+                    )
+                    context.user_data["last_menu_msg_id"] = sent.message_id
+                except BadRequest:
+                    sent = await context.bot.send_message(
+                        chat_id=cid, text=caption, parse_mode=ParseMode.MARKDOWN, reply_markup=kb_back
+                    )
+                    context.user_data["last_menu_msg_id"] = sent.message_id
+            elif prod.get("photo_file_id"):
+                try:
+                    sent = await context.bot.send_photo(
+                        chat_id=cid,
+                        photo=prod["photo_file_id"],
+                        caption=caption,
+                        parse_mode=ParseMode.MARKDOWN,
+                        reply_markup=kb_back
+                    )
+                    context.user_data["last_menu_msg_id"] = sent.message_id
+                except BadRequest:
+                    sent = await context.bot.send_message(
+                        chat_id=cid, text=caption, parse_mode=ParseMode.MARKDOWN, reply_markup=kb_back
+                    )
+                    context.user_data["last_menu_msg_id"] = sent.message_id
+            else:
+                sent = await context.bot.send_message(
+                    chat_id=cid, text=caption, parse_mode=ParseMode.MARKDOWN, reply_markup=kb_back
+                )
+                context.user_data["last_menu_msg_id"] = sent.message_id
+            return
+
 
     # ────────────────────────  MESSAGES  ──────────────────────── #
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
