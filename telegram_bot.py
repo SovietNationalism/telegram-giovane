@@ -68,8 +68,222 @@ class ShopBot:
         # Products registry (empty now; add later as real items)
         # product_id: {"category": str, "name": str, "price": str|None, "description": str|None,
         #              "caption": str|None, "video_file_id": str|None}
-        self.products = {}
-
+        self.products = {
+        # cannabis_sintetica
+        "cs_liquido": {
+            "category": "cannabis_sintetica",
+            "name": "🍃 Liquido per svapo — CANNABIS SYNTH 😶‍🌫️😵‍💫",
+            "caption": (
+                "50 ml : 200€ (4€/ml)\n"
+                "100 ml : 350€ (3.5€/ml)\n"
+                "200 ml : 600€ (3€/ml)\n"
+                "500 ml : 1000€ (2€/ml)\n"
+                "1000 ml : 1600€ (1.6€/ml)\n\n"
+                "Liquido per sigaretta elettronica ai cannabinoidi sintetici;\n"
+                "Un paio di tiri per uno sballo come da THC ma più potente e non rilevabile ai test antidroga;\n"
+                "Inodore ed insapore, usalo ovunque senza che nessuno se ne accorga, oppure aggiungi i tuoi aromi preferiti.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "cs_k2_spice": {
+            "category": "cannabis_sintetica",
+            "name": "🍃 K2 | SPICE 🤯",
+            "caption": (
+                "Bags da 3gr:\n"
+                "2 bags : 70€ (35€/bag)\n"
+                "5 bags : 120€ (24€/bag)\n"
+                "10 bags : 180€ (18€/bag)\n\n"
+                "L’originale Spice (o K2), leggendaria ed iconica;\n"
+                "Erbe contenenti potenti cannabinoidi sintetici;\n"
+                "Un high simile al classico THC, ma più potente e non rilevabile ai test antidroga.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "cs_synth_weed": {
+            "category": "cannabis_sintetica",
+            "name": "🍃 SYNTH WEED 🥦🫠",
+            "caption": (
+                "25 gr : 160€ (6.4€/gr)\n"
+                "50 gr : 250€ (5€/gr)\n"
+                "100 gr : 420€ (4.2€/gr)\n"
+                "200 gr : 600€ (3€/gr)\n\n"
+                "Fiori CBD di alta qualità, contenenti cannabinoidi sintetici;\n"
+                "Stesso sballo del classico THC ma più potente e non rilevabile dai test antidroga.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+    
+        # stimolanti
+        "stim_boliviana": {
+            "category": "stimolanti",
+            "name": "🥥 BOLIVIANA 🌨️⛷️",
+            "caption": (
+                "1 gr : 90€\n"
+                "3 gr : 240€ (80€/gr)\n"
+                "5 gr : 300€ (60€/gr)\n"
+                "10 gr : 500€ (50€/gr)\n"
+                "25 gr : 1000€ (40€/gr)\n\n"
+                "Direttamente dalla Bolivia;\n"
+                "Prodotta nel cuore della foresta amazzonica mediante le tecniche tradizionali;\n"
+                "High forte, euforico e duraturo, down quasi del tutto assente.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "stim_4mmc": {
+            "category": "stimolanti",
+            "name": "💎 4‑mmc 😻🥰",
+            "caption": (
+                "5 gr : 130€ (26€/gr)\n"
+                "10 gr : 160€ (16€/gr)\n"
+                "25 gr : 300€ (12€/gr)\n"
+                "50 gr : 450€ (9€/gr)\n"
+                "100 gr : 750€ (7.5€/gr)\n\n"
+                "Rocce e cristalli purissimi e pulitissimi;\n"
+                "Ti garantiranno un’euforia inimmaginabile e un immenso aumento di empatia ed amore verso il prossimo.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "stim_nep": {
+            "category": "stimolanti",
+            "name": "💠 NEP 🏃🏃",
+            "caption": (
+                "5 gr : 150€ (30€/gr)\n"
+                "10 gr : 200€ (20€/gr)\n"
+                "25 gr : 250€ (10€/gr)\n"
+                "50 gr : 450€ (9€/gr)\n"
+                "100 gr : 650€ (6.5€/gr)\n\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+    
+        # psichedelici
+        "psy_lsd": {
+            "category": "psichedelici",
+            "name": "😵‍💫 L$D needlepoint 250 µg 🦄🌈",
+            "caption": (
+                "5 tabs : 40€ (8€/tab)\n"
+                "10 tabs : 70€ (7€/tab)\n"
+                "25 tabs : 125€ (5€/tab)\n"
+                "dm per quantità maggiori\n\n"
+                "L$D reale e di alta qualità, testata con reagenti;\n"
+                "Stampa ‘Hoffman 80th’.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "psy_dmt_cart": {
+            "category": "psichedelici",
+            "name": "🤩 DMT 1ml cart 0.6gr/ml 🫥🫨",
+            "caption": (
+                "1 cart : 90€\n"
+                "2 carts : 160€\n"
+                "3 carts : 220€\n\n"
+                "Cart da 1ml con 0.6gr di purissima DMT, la concentrazione più alta possibile, "
+                "un paio di tiri per un breakthrough assicurato;\n"
+                "È compresa nel prezzo anche la batteria ricaricabile e dal voltaggio regolabile per poter iniziare da subito.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+    
+        # cannabis
+        "can_gelato33": {
+            "category": "cannabis",
+            "name": "🍦 GELATO #33 🇺🇸🛫🇮🇹",
+            "caption": (
+                "3.5 gr : 50€ (14.3€/gr)\n"
+                "10 gr : 90€ (9€/gr)\n"
+                "20 gr : 170€ (8.5€/gr)\n"
+                "25 gr : 190€ (7.6€/gr)\n\n"
+                "Importata direttamente dalla California!\n"
+                "Creato dall'unione tra Sunset Sherbet e Thin Mint GSC, ibrido con effetti potenti (~25% THC). "
+                "Rilassa ma resta funzionale e vigile.\n"
+                "Profilo dolce e goloso; effetti edificanti e stimolanti.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "can_svapo_thc_2ml": {
+            "category": "cannabis",
+            "name": "😶‍🌫️ Svapo THC 2ml 🫨💨",
+            "caption": (
+                "1 pod : 80€\n"
+                "2 pods : 140€ (70€/pod)\n"
+                "3 pods : 165€ (55€/pod)\n"
+                "5 pods : 250€ (50€/pod)\n\n"
+                "Svapo “PackMan” con 2ml di estratto di prima qualità!\n"
+                "strain disponibili:\n"
+                " - Kiwi KushBerry\n"
+                " - Strawberry Slurricane\n"
+                " - Blue Razzle Runtz\n"
+                " - Gobstopper Gumdrop\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "can_fruit_bert": {
+            "category": "cannabis",
+            "name": "🍃 FRUIT BERT 🍋🍇🍉",
+            "caption": (
+                "10 gr : 100€ (10€/gr)\n"
+                "25 gr : 200€ (8€/gr)\n"
+                "50 gr : 350€ (7€/gr)\n"
+                "100 gr : 600€ (6€/gr)\n\n"
+                "Ideale per gli amanti dei sapori fruttati, effetti euforici ed energizzanti.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "can_cookies_kush": {
+            "category": "cannabis",
+            "name": "🍃 COOKIES KUSH 🍪😋",
+            "caption": (
+                "10 gr : 100€ (10€/gr)\n"
+                "25 gr : 200€ (8€/gr)\n"
+                "50 gr : 350€ (7€/gr)\n"
+                "100 gr : 600€ (6€/gr)\n\n"
+                "Dominanza indica, relax mentale e fisico; aromi dolci e terrosi.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "can_ice_rock": {
+            "category": "cannabis",
+            "name": "🍃 ICE ROCK 🧊",
+            "caption": (
+                "5 gr : 100€ (20€/gr)\n"
+                "10 gr : 180€ (18€/gr)\n"
+                "15 gr : 240€ (16€/gr)\n"
+                "25 gr : 350€ (14€/gr)\n"
+                "50 gr : 550€ (11€/gr)\n"
+                "100 gr : 900€ (9€/gr)\n\n"
+                "Fiori ricoperti da hash oil e cristalli di THC.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+        "can_moon_rock": {
+            "category": "cannabis",
+            "name": "🍃 MOON ROCK 🌖",
+            "caption": (
+                "5 gr : 100€ (20€/gr)\n"
+                "10 gr : 180€ (18€/gr)\n"
+                "15 gr : 240€ (16€/gr)\n"
+                "25 gr : 350€ (14€/gr)\n"
+                "50 gr : 550€ (11€/gr)\n"
+                "100 gr : 900€ (9€/gr)\n\n"
+                "Fiori ricoperti da hash oil e successivamente di kief.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": None,
+        },
+    }
         # Track users for broadcast
         self.user_ids = set()
 
