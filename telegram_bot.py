@@ -23,8 +23,6 @@ REVIEWS_URL = "https://t.me/+x6I1LGcB_OY2MGQ0"
 
 TOS_TEXT = (
     "Effettuando un ordine accetti in automatico ai seguenti termini di servizio:\n"
-    "Spedizione e stealth a scelta tra InPost, UPS e BRT sempre a 10€ (eccetto il caso in cui sia specificato nell'annuncio 'spedizione gratuita').\n\n"
-    "☑️\n"
     "Reship del 100% in caso di pacco smarrito o bloccato per errori del vendor nelle spedizioni tramite corriere (BRT e UPS);\n"
     "Reship del 50% in caso di pacco smarrito o bloccato per errori del vendor nelle spedizioni tramite InPost;\n"
     "Reship del 100% in caso di pacco manomesso durante la spedizione e privo dei prodotti ordinati (dimostrabile solo tramite video chiaro e ben visibile del momento del ritiro del pacco e successivamente della sua apertura).\n\n"
