@@ -1,4 +1,4 @@
-import os, sys, logging
+import os, sys, logging, json, asyncio, tempfile
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import (
@@ -10,7 +10,8 @@ from telegram.error import BadRequest
 # ─────────────────────────  CONFIG  ───────────────────────── #
 
 BOT_TOKEN         = os.getenv("BOT_TOKEN")
-ADMIN_USER_IDS    = {6840588025, 7602444648}  # <-- put the second admin's numeric user_id here
+ADMIN_USER_IDS    = {6840588025, 7602444648} 
+USERS_DB = "users.json"
 
 # Client-specific text and links
 WELCOME_IMAGE_URL = "https://i.postimg.cc/D038YGC5/IMG-0728.jpg"
@@ -352,8 +353,57 @@ class ShopBot:
             "photo_file_id": "AgACAgQAAxkBAAPHaOnfubuu2-OyqBQgHRwx3puj_NQAAmfJMRtPrVBT1DA48qsI0QoBAAMCAAN4AAM2BA",
         },
     }
-        # Track users for broadcast
-        self.user_ids = set()
+    
+    self._uids_lock = asyncio.Lock()
+    self.user_ids = self._load_user_ids()
+    
+    async def _send_protected_photo(self, bot, chat_id, photo, caption, reply_markup):
+        return await bot.send_photo(
+            chat_id=chat_id,
+            photo=photo,
+            caption=caption,
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=reply_markup,
+            protect_content=True
+        )
+    
+    async def _send_protected_video(self, bot, chat_id, video, caption, reply_markup):
+        return await bot.send_video(
+            chat_id=chat_id,
+            video=video,
+            caption=caption,
+            parse_mode=ParseMode.MARKDOWN,
+            supports_streaming=True,
+            reply_markup=reply_markup,
+            protect_content=True
+        )
+    
+    def _load_user_ids(self):
+        try:
+            with open(USERS_DB, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return set(int(x) for x in data)
+        except FileNotFoundError:
+            return set()
+        except Exception as e:
+            logger.warning(f"Failed to load {USERS_DB}: {e}")
+            return set()
+    
+    async def _save_user_ids(self):
+        async with self._uids_lock:
+            try:
+                tmp_fd, tmp_path = tempfile.mkstemp(prefix="users_", suffix=".json")
+                with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+                    json.dump(sorted(self.user_ids), f, ensure_ascii=False)
+                os.replace(tmp_path, USERS_DB)
+            except Exception as e:
+                logger.warning(f"Failed to save {USERS_DB}: {e}")
+    
+    async def add_user(self, uid: int):
+        if uid not in self.user_ids:
+            self.user_ids.add(uid)
+            await self._save_user_ids()
+
 
     # ────────────────────  HELPER: relay  ─────────────────── #
     async def _relay_to_admin(self, context: ContextTypes.DEFAULT_TYPE, who, what: str) -> None:
@@ -407,12 +457,18 @@ class ShopBot:
 
     # ────────────────────────  COMMANDS  ──────────────────────── #
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        self.user_ids.add(update.effective_user.id)
+        await self.add_user(update.effective_user.id)
         await self.delete_last_menu(context, update.effective_chat.id)
 
         m = update.effective_message
         try:
-            sent = await m.reply_photo(photo=WELCOME_IMAGE_URL, caption=WELCOME_TEXT, reply_markup=self.home_keyboard())
+            sent = await self._send_protected_photo(
+                context.bot,
+                update.effective_chat.id,
+                WELCOME_IMAGE_URL,
+                WELCOME_TEXT,
+                self.home_keyboard()
+            )
             context.user_data["last_menu_msg_id"] = sent.message_id
         except BadRequest:
             sent = await m.reply_text(text=WELCOME_TEXT, reply_markup=self.home_keyboard())
@@ -422,28 +478,30 @@ class ShopBot:
         if update.effective_user.id not in ADMIN_USER_IDS:
             await update.message.reply_text("❌ Non sei autorizzato a usare questo comando.")
             return
-
         if not context.args:
             await update.message.reply_text("❗ Usa correttamente: /broadcast <messaggio>")
             return
-
+    
         message = " ".join(context.args)
-        count = 0
+        sent_ok, removed = 0, 0
         for uid in list(self.user_ids):
             try:
                 await context.bot.send_message(uid, f"📢 {message}")
-                count += 1
+                sent_ok += 1
             except Exception as e:
                 logger.warning(f"Impossibile inviare a {uid}: {e}")
-
-        await update.message.reply_text(f"✅ Messaggio inviato a {count} utenti.")
+                self.user_ids.discard(uid)
+                removed += 1
+        if removed:
+            await self._save_user_ids()
+        await update.message.reply_text(f"✅ Inviati: {sent_ok} | Rimossi: {removed}")
 
     # ────────────────────────  CALLBACKS  ──────────────────────── #
     async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         q   = update.callback_query
         d   = q.data
         cid = q.message.chat.id
-        self.user_ids.add(update.effective_user.id)
+        await self.add_user(update.effective_user.id)
     
         await q.answer()
     
@@ -576,13 +634,12 @@ class ShopBot:
             
             if prod.get("video_file_id"):
                 try:
-                    sent = await context.bot.send_video(
-                        chat_id=cid,
-                        video=prod["video_file_id"],
-                        caption=caption,
-                        parse_mode=ParseMode.MARKDOWN,
-                        supports_streaming=True,
-                        reply_markup=kb_back
+                    sent = await self._send_protected_video(
+                        context.bot,
+                        cid,
+                        prod["video_file_id"],
+                        caption,
+                        kb_back
                     )
                     context.user_data["last_menu_msg_id"] = sent.message_id
                 except BadRequest:
@@ -592,12 +649,12 @@ class ShopBot:
                     context.user_data["last_menu_msg_id"] = sent.message_id
             elif prod.get("photo_file_id"):
                 try:
-                    sent = await context.bot.send_photo(
-                        chat_id=cid,
-                        photo=prod["photo_file_id"],
-                        caption=caption,
-                        parse_mode=ParseMode.MARKDOWN,
-                        reply_markup=kb_back
+                    sent = await self._send_protected_photo(
+                        context.bot,
+                        cid,
+                        prod["photo_file_id"],
+                        caption,
+                        kb_back
                     )
                     context.user_data["last_menu_msg_id"] = sent.message_id
                 except BadRequest:
@@ -616,7 +673,7 @@ class ShopBot:
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         m   = update.effective_message
         usr = update.effective_user
-        self.user_ids.add(usr.id)
+        await self.add_user(usr.id)
 
         if usr and usr.id not in ADMIN_USER_IDS: 
             txt = (
