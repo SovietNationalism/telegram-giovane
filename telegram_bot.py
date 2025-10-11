@@ -10,7 +10,7 @@ from telegram.error import BadRequest
 # ─────────────────────────  CONFIG  ───────────────────────── #
 
 BOT_TOKEN         = os.getenv("BOT_TOKEN")
-ADMIN_USER_ID     = 6840588025
+ADMIN_USER_IDS    = {6840588025, 1234567890}  # <-- put the second admin's numeric user_id here
 
 # Client-specific text and links
 WELCOME_IMAGE_URL = "https://i.postimg.cc/D038YGC5/IMG-0728.jpg"
@@ -283,11 +283,12 @@ class ShopBot:
     async def _relay_to_admin(self, context: ContextTypes.DEFAULT_TYPE, who, what: str) -> None:
         message = f"👤 {who.full_name} ({who.id})\n💬 {what}"
         logger.info(message)
-        try:
-            await context.bot.send_message(ADMIN_USER_ID, message)
-        except Exception as e:
-            logger.warning(f"Failed to relay to admin: {e}")
-            
+        for admin_id in ADMIN_USER_IDS:
+            try:
+                await context.bot.send_message(admin_id, message)
+            except Exception as e:
+                logger.warning(f"Failed to relay to admin {admin_id}: {e}")
+        
     async def delete_last_menu(self, context, chat_id):
         msg_id = context.user_data.get("last_menu_msg_id")
         if msg_id:
@@ -342,7 +343,7 @@ class ShopBot:
             context.user_data["last_menu_msg_id"] = sent.message_id
 
     async def broadcast(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if update.effective_user.id != ADMIN_USER_ID:
+        if update.effective_user.id not in ADMIN_USER_IDS:
             await update.message.reply_text("❌ Non sei autorizzato a usare questo comando.")
             return
 
@@ -370,8 +371,8 @@ class ShopBot:
 
         await q.answer()
 
-        if update.effective_user.id != ADMIN_USER_ID:
-            await self._relay_to_admin(context, update.effective_user, f"Pressed button: {d}")
+        if update.effective_user.id not in ADMIN_USER_IDS:
+    await self._relay_to_admin(context, update.effective_user, f"Pressed button: {d}")
 
         await self.delete_last_menu(context, cid)
 
@@ -531,7 +532,7 @@ class ShopBot:
             )
             await self._relay_to_admin(context, usr, txt)
 
-        if usr and usr.id == ADMIN_USER_ID:
+        if usr and usr.id in ADMIN_USER_IDS:
             if m.video:
                 await m.reply_text(f"File ID del video:\n<code>{m.video.file_id}</code>", parse_mode=ParseMode.HTML); return
             if m.photo:
