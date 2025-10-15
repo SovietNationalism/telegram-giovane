@@ -276,7 +276,7 @@ class ShopBot:
                 "Profilo dolce e goloso; effetti edificanti e stimolanti.\n"
                 "spedizione e stealth : 10€"
             ),
-            "video_file_id": "BAACAgQAAxkBAAIBUGjqvh9VCFR1_dpUOGpSLbIG_ZOVAALPFwAC7-5ZU_THw9wOkhl1NgQ",
+            "video_file_id": "BAACAgQAAxkBAAINZ2jvMps1PT-TnRZS_SWneMtQMZ6wAALOGgACOMZ5U1CQJUwVm66MNgQ",
         },
         "can_svapo_thc_2ml": {
             "category": "cannabis",
@@ -295,6 +295,29 @@ class ShopBot:
                 "spedizione e stealth : 10€"
             ),
             "photo_file_id": "AgACAgQAAxkBAAIBVGjqvnO3xJniDk1Huj6JnEGii8ymAALyyzEb7-5ZUzQprivCR4gnAQADAgADeAADNgQ",
+        },
+        "can_muha_thc_2ml": {
+            "category": "cannabis",
+            "name": "😶‍🌫️ Muha Meds THC Vape 2ml 🫨💨",
+            "caption": (
+                "1 pod : 90€\n"
+                "5 pods : 350 (70€/pod)\n"
+                "10 pods : 650€ (65€/pod)\n"
+                "Svapo premium Americana “Muha Meds” con 2ml di estratto di prima qualità!\n"
+                "strain disponibili:\n"
+                " - Cereal Milk\n"
+                " - Jedi Kush\n"
+                " - Rainbow Belts\n"
+                " - Lavender Haze\n"
+                " - Truffle Butter\n"
+                " - Purple Champagne\n"
+                " - White Raspberry\n"
+                " - Citrus Tsunami\n"
+                " - Venom Og\n"
+                " - Mango Peach Rings\n"
+                "spedizione e stealth : 10€"
+            ),
+            "photo_file_id": "BAACAgQAAxkBAAINaWjvMp5DdZjh_h0UGMTknjmglTMPAALPGgACOMZ5Ux1wOxAnnE3VNgQ",
         },
         "can_fruit_bert": {
             "category": "cannabis",
