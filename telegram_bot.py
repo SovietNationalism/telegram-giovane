@@ -317,7 +317,7 @@ class ShopBot:
                 " - Mango Peach Rings\n"
                 "spedizione e stealth : 10€"
             ),
-            "photo_file_id": "BAACAgQAAxkBAAINaWjvMp5DdZjh_h0UGMTknjmglTMPAALPGgACOMZ5Ux1wOxAnnE3VNgQ",
+            "video_file_id": "BAACAgQAAxkBAAINaWjvMp5DdZjh_h0UGMTknjmglTMPAALPGgACOMZ5Ux1wOxAnnE3VNgQ",
         },
         "can_fruit_bert": {
             "category": "cannabis",
