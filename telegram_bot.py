@@ -725,30 +725,17 @@ class ShopBot:
             if not prod:
                 await q.answer("❌ Prodotto non trovato!")
                 return
-
-            # Compose caption
-            if prod.get("caption"):
-                caption = prod["caption"]
-            else:
-                parts = [f"📦 *{prod.get('name','Prodotto')}*"]
-                price = (prod.get("price") or "").strip()
-                if price:
-                    parts.append(f"💵 Prezzo:\n{price}")
-                desc = (prod.get("description") or "").strip()
-                if desc:
-                    parts.append(f"📝 Descrizione: {desc}")
-                caption = "\n".join(parts)
-
-            cat_key = prod.get("category") or ""
-            back_cb = f"cat_{cat_key}" if cat_key else "menu"
-            if cat_key == "pharma":
-                kb_rows = [
-                    [InlineKeyboardButton("⬅️ Indietro", callback_data=back_cb)],
-                ]
-            else:
-                kb_rows = [[InlineKeyboardButton("⬅️ Indietro", callback_data=back_cb)]]
-            kb_back = InlineKeyboardMarkup(kb_rows)
-            
+        
+            # Build caption
+            caption = prod.get("caption") or "\n".join(filter(None, [
+                f"📦 *{prod.get('name','Prodotto')}*",
+                f"💵 Prezzo:\n{(prod.get('price') or '').strip()}" if prod.get("price") else "",
+                f"📝 Descrizione: {(prod.get('description') or '').strip()}" if prod.get("description") else ""
+            ]))
+        
+            # Decide where Back goes:
+            # - cannabis items with c_sub -> back to that subcategory
+            # - everything else -> back to its category
             cat_key = prod.get("category") or ""
             c_sub = prod.get("c_sub")
             if cat_key == "cannabis" and c_sub:
@@ -756,7 +743,8 @@ class ShopBot:
             else:
                 back_cb = f"cat_{cat_key}" if cat_key else "menu"
             kb_back = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Indietro", callback_data=back_cb)]])
-            
+        
+            # Send media or text with the keyboard
             if prod.get("video_file_id"):
                 try:
                     sent = await self._send_protected_video(
