@@ -264,6 +264,7 @@ class ShopBot:
         # cannabis
         "can_gelato33": {
             "category": "cannabis",
+            "c_sub": "weed",
             "name": "🍦 GELATO #33 🇺🇸🛫🇮🇹",
             "caption": (
                 "3.5 gr : 50€ (14.3€/gr)\n"
@@ -278,8 +279,42 @@ class ShopBot:
             ),
             "video_file_id": "BAACAgQAAxkBAAINZ2jvMps1PT-TnRZS_SWneMtQMZ6wAALOGgACOMZ5U1CQJUwVm66MNgQ",
         },
+        "can_frozen_magic": {
+            "category": "cannabis",
+            "c_sub": "hashish",
+            "name": "🍫 Frozen Magic Farms 🪄🍃 (ovetti 10gr)",
+            "caption": (
+                "2.5 gr : 60€ (24€/gr)\n"
+                "5 gr : 80€ (16€/gr)\n"
+                "10 gr : 150€ (15€/gr)\n"
+                "20 gr : 250€ (12.5€/gr)\n"
+                "50 gr : 500€ (10€/gr)\n"
+                "100 gr : 900€ (9€/gr)\n\n"
+                "Frozen sift di qualità elevatissima, curato alla perfezione;\n"
+                "Un vero piacere da fumare: odore fresco ma saporito, dolce ed intenso, high potente;\n"
+                "Livello e qualità superiori ai soliti dry e filtrati; per chi vuole solo il top!\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": "BAACAgQAAxkBAAINv2jwWoXBzfgkOTCeWLPEnXpVVKY8AAJtGQAChq2IU5vtVjG_SmvfNgQ",
+        },
+        "can_thc_lean": {
+            "category": "cannabis",
+            "c_sub": "edibles",
+            "name": "THC Lean",
+            "caption": (
+                "1 boccia / 45€\n"
+                "2 boccie / 70€ (35€/boccia)\n"
+                "3 boccie / 95€ (31.5€/boccia)\n\n"
+                "Ogni boccietta contiene 300mg di THC;\n"
+                "QWET da drysift di altissima qualità, emulsionata in sciroppo dolce e goloso per stabilità e biodisponibilità superiori.\n"
+                "Da mescolare con qualsiasi bevanda.\n"
+                "spedizione e stealth : 10€"
+            ),
+            "photo_file_id": "AgACAgQAAxkBAAINvWjwWk064bhCcGbSLCgxie321UfxAAIWxzEbhq2IUylsiqIzDdgfAQADAgADeQADNgQ",
+        },
         "can_svapo_thc_2ml": {
             "category": "cannabis",
+            "c_sub": "vapes",
             "name": "😶‍🌫️ Svapo THC 2ml 🫨💨",
             "caption": (
                 "1 pod : 80€\n"
@@ -298,6 +333,7 @@ class ShopBot:
         },
         "can_muha_thc_2ml": {
             "category": "cannabis",
+            "c_sub": "vapes",
             "name": "😶‍🌫️ Muha Meds THC Vape 2ml 🫨💨",
             "caption": (
                 "1 pod : 90€\n"
@@ -321,6 +357,7 @@ class ShopBot:
         },
         "can_fruit_bert": {
             "category": "cannabis",
+            "c_sub": "weed",
             "name": "🍃 FRUIT BERT 🍋🍇🍉",
             "caption": (
                 "10 gr : 100€ (10€/gr)\n"
@@ -334,6 +371,7 @@ class ShopBot:
         },
         "can_cookies_kush": {
             "category": "cannabis",
+            "c_sub": "weed",
             "name": "🍃 COOKIES KUSH 🍪😋",
             "caption": (
                 "10 gr : 100€ (10€/gr)\n"
@@ -347,6 +385,7 @@ class ShopBot:
         },
         "can_ice_rock": {
             "category": "cannabis",
+            "c_sub": "weed",
             "name": "🍃 ICE ROCK 🧊",
             "caption": (
                 "5 gr : 100€ (20€/gr)\n"
@@ -362,6 +401,7 @@ class ShopBot:
         },
         "can_moon_rock": {
             "category": "cannabis",
+            "c_sub": "weed",
             "name": "🍃 MOON ROCK 🌖",
             "caption": (
                 "5 gr : 100€ (20€/gr)\n"
@@ -476,6 +516,19 @@ class ShopBot:
                 prod_rows.append([InlineKeyboardButton(p.get("name", f"Prodotto {pid}"), callback_data=f"product_{pid}")])
         prod_rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="menu")])
         return InlineKeyboardMarkup(prod_rows)
+        
+    def cannabis_subcategories_keyboard(self) -> InlineKeyboardMarkup:
+        return InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🌿 Erba",     callback_data="csub_weed"),
+                InlineKeyboardButton("💨 Svapo",    callback_data="csub_vapes"),
+            ],
+            [
+                InlineKeyboardButton("🍪 Edibili",  callback_data="csub_edibles"),
+                InlineKeyboardButton("🍫 Hashish",  callback_data="csub_hashish"),
+            ],
+            [InlineKeyboardButton("⬅️ Indietro", callback_data="menu")]
+        ])
 
     # ────────────────────────  COMMANDS  ──────────────────────── #
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -581,6 +634,15 @@ class ShopBot:
         # ---------- CATEGORIA ---------- #
         if d.startswith("cat_"):
             cat_key = d.split("_", 1)[1]
+            
+            if cat_key == "cannabis":
+                sent = await context.bot.send_message(
+                    chat_id=cid,
+                    text="🍃 Cannabis — scegli una sottocategoria:",
+                    reply_markup=self.cannabis_subcategories_keyboard()
+                )
+                context.user_data["last_menu_msg_id"] = sent.message_id
+                return
 
             # Special Pharma submenu: syrup + DM + back
             if cat_key == "pharma":
@@ -621,6 +683,44 @@ class ShopBot:
                 )
                 context.user_data["last_menu_msg_id"] = sent.message_id
             return
+            
+            def cannabis_products_keyboard(self, subkey: str) -> InlineKeyboardMarkup:
+                rows = []
+                for pid, p in self.products.items():
+                    if p.get("category") == "cannabis" and p.get("c_sub") == subkey:
+                        rows.append([InlineKeyboardButton(p.get("name", f"Prodotto {pid}"), callback_data=f"product_{pid}")])
+                rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="cat_cannabis")])
+                return InlineKeyboardMarkup(rows)
+                
+            if d in ("csub_weed", "csub_vapes", "csub_edibles", "csub_hashish"):
+                sub = d.split("_", 1)[1]  # weed | vapes | edibles | hashish
+                mapping = {
+                    "weed": "🌿 WEED",
+                    "vapes": "💨 VAPES",
+                    "edibles": "🍪 EDIBLES",
+                    "hashish": "🧱 HASHISH",
+                }
+                title = mapping.get(sub, sub.upper())
+                # Detect if any product exists in this subcategory
+                has_any = any(
+                    p.get("category") == "cannabis" and p.get("c_sub") == sub
+                    for p in self.products.values()
+                )
+                if has_any:
+                    sent = await context.bot.send_message(
+                        chat_id=cid,
+                        text=f"{title} — Prodotti disponibili:",
+                        reply_markup=self.cannabis_products_keyboard(sub)
+                    )
+                else:
+                    sent = await context.bot.send_message(
+                        chat_id=cid,
+                        text=f"{title}\n\nNessun prodotto in questa sottocategoria al momento.",
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Indietro", callback_data="cat_cannabis")]])
+                    )
+                context.user_data["last_menu_msg_id"] = sent.message_id
+                return
+
 
         # ---------- PRODOTTO ---------- #
         if d.startswith("product_"):
@@ -653,6 +753,13 @@ class ShopBot:
                 kb_rows = [[InlineKeyboardButton("⬅️ Indietro", callback_data=back_cb)]]
             kb_back = InlineKeyboardMarkup(kb_rows)
             
+            cat_key = prod.get("category") or ""
+            c_sub = prod.get("c_sub")
+            if cat_key == "cannabis" and c_sub:
+                back_cb = f"csub_{c_sub}"
+            else:
+                back_cb = f"cat_{cat_key}" if cat_key else "menu"
+            kb_back = InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Indietro", callback_data=back_cb)]])
             
             if prod.get("video_file_id"):
                 try:
