@@ -643,14 +643,33 @@ class ShopBot:
         if d.startswith("cat_"):
             cat_key = d.split("_", 1)[1]
             
-            if cat_key == "cannabis":
+        if d in ("csub_weed", "csub_vapes", "csub_edibles", "csub_hashish"):
+            sub = d.split("_", 1)[1]  # weed | vapes | edibles | hashish
+            mapping = {
+                "weed": "🌿 WEED",
+                "vapes": "💨 VAPES",
+                "edibles": "🍪 EDIBLES",
+                "hashish": "🍫 HASHISH",
+            }
+            title = mapping.get(sub, sub.upper())
+            has_any = any(
+                p.get("category") == "cannabis" and p.get("c_sub") == sub
+                for p in self.products.values()
+            )
+            if has_any:
                 sent = await context.bot.send_message(
                     chat_id=cid,
-                    text="🍃 Cannabis — scegli una sottocategoria:",
-                    reply_markup=self.cannabis_subcategories_keyboard()
+                    text=f"{title} — Prodotti disponibili:",
+                    reply_markup=self.cannabis_products_keyboard(sub)
                 )
-                context.user_data["last_menu_msg_id"] = sent.message_id
-                return
+            else:
+                sent = await context.bot.send_message(
+                    chat_id=cid,
+                    text=f"{title}\n\nNessun prodotto in questa sottocategoria al momento.",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("⬅️ Indietro", callback_data="cat_cannabis")]])
+                )
+            context.user_data["last_menu_msg_id"] = sent.message_id
+            return
 
             # Special Pharma submenu: syrup + DM + back
             if cat_key == "pharma":
