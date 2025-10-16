@@ -306,8 +306,14 @@ class ShopBot:
                 "2 boccie / 70€ (35€/boccia)\n"
                 "3 boccie / 95€ (31.5€/boccia)\n\n"
                 "Ogni boccietta contiene 300mg di THC;\n"
-                "Prodotto con un estrazione QWET da drysift di altissima qualità, emulsionata in sciroppo dolce e goloso per stabilità e biodisponibilità superiori.\n"
+                "Prodotto con un estrazione QWET da drysift di altissima qualità, emulsionata in sciroppo dolce al lampone per stabilità e biodisponibilità superiori.\n"
                 "Da mescolare con qualsiasi bevanda.\n"
+                "Per un aggiunta di 5€, un sapore a richiesta (es. cola, passion fruit, mela, etc) può essere preparato.\n"
+                "Dosaggio consigliato (2 mg/ml):\n"
+                "🟢 Principianti: 10–15 mg (5–7.5 ml circa)\n"
+                "🟡 Regolari: 25–35 mg (12.5–17.5 ml)\n"
+                "🔴 Esperti: 50 + mg (25 ml e oltre)\n"
+                "Ricordarsi che gli ml non equivalgono ai grammi."
                 "spedizione e stealth : 10€"
             ),
             "photo_file_id": "AgACAgQAAxkBAAINvWjwWk064bhCcGbSLCgxie321UfxAAIWxzEbhq2IUylsiqIzDdgfAQADAgADeQADNgQ",
