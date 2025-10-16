@@ -497,6 +497,14 @@ class ShopBot:
             [InlineKeyboardButton("📋 T.O.S", callback_data="tos")],
         ]
         return InlineKeyboardMarkup(kb)
+        
+    def cannabis_products_keyboard(self, subkey: str) -> InlineKeyboardMarkup:
+    rows = []
+    for pid, p in self.products.items():
+        if p.get("category") == "cannabis" and p.get("c_sub") == subkey:
+            rows.append([InlineKeyboardButton(p.get("name", f"Prodotto {pid}"), callback_data=f"product_{pid}")])
+    rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="cat_cannabis")])
+    return InlineKeyboardMarkup(rows)
 
     def categories_keyboard(self) -> InlineKeyboardMarkup:
         rows, row = [], []
@@ -684,14 +692,6 @@ class ShopBot:
                 context.user_data["last_menu_msg_id"] = sent.message_id
             return
             
-            def cannabis_products_keyboard(self, subkey: str) -> InlineKeyboardMarkup:
-                rows = []
-                for pid, p in self.products.items():
-                    if p.get("category") == "cannabis" and p.get("c_sub") == subkey:
-                        rows.append([InlineKeyboardButton(p.get("name", f"Prodotto {pid}"), callback_data=f"product_{pid}")])
-                rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="cat_cannabis")])
-                return InlineKeyboardMarkup(rows)
-                
             if d in ("csub_weed", "csub_vapes", "csub_edibles", "csub_hashish"):
                 sub = d.split("_", 1)[1]  # weed | vapes | edibles | hashish
                 mapping = {
