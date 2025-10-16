@@ -282,7 +282,7 @@ class ShopBot:
         "can_frozen_magic": {
             "category": "cannabis",
             "c_sub": "hashish",
-            "name": "🍫 Frozen Magic Farms 🪄🍃 (ovetti 10gr)",
+            "name": "🍫 Frozen Magic Farms 🪄🍃",
             "caption": (
                 "2.5 gr : 60€ (24€/gr)\n"
                 "5 gr : 80€ (16€/gr)\n"
@@ -290,7 +290,7 @@ class ShopBot:
                 "20 gr : 250€ (12.5€/gr)\n"
                 "50 gr : 500€ (10€/gr)\n"
                 "100 gr : 900€ (9€/gr)\n\n"
-                "Frozen sift di qualità elevatissima, curato alla perfezione;\n"
+                "Frozen sift di qualità elevatissima, ovuli da 10g, curato alla perfezione;\n"
                 "Un vero piacere da fumare: odore fresco ma saporito, dolce ed intenso, high potente;\n"
                 "Livello e qualità superiori ai soliti dry e filtrati; per chi vuole solo il top!\n"
                 "spedizione e stealth : 10€"
@@ -306,7 +306,7 @@ class ShopBot:
                 "2 boccie / 70€ (35€/boccia)\n"
                 "3 boccie / 95€ (31.5€/boccia)\n\n"
                 "Ogni boccietta contiene 300mg di THC;\n"
-                "QWET da drysift di altissima qualità, emulsionata in sciroppo dolce e goloso per stabilità e biodisponibilità superiori.\n"
+                "Prodotto con un estrazione QWET da drysift di altissima qualità, emulsionata in sciroppo dolce e goloso per stabilità e biodisponibilità superiori.\n"
                 "Da mescolare con qualsiasi bevanda.\n"
                 "spedizione e stealth : 10€"
             ),
