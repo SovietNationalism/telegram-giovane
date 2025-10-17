@@ -184,6 +184,22 @@ class ShopBot:
             ),
             "video_file_id": "BAACAgQAAxkBAAIBjGjqy32Nw8xXKYeN_8CFSeyaoEOtAALdFwAC7-5ZU7e7OyMM76sRNgQ",
         },
+        "ph_tryasol": {
+            "category": "pharma",
+            "name": "😵‍💫TRYASOL🫗",
+            "caption": (
+                "Lean/Codeina Tedesca, ogni boccia contiene 100 ml e ha una concenteaizone di 2.5mg per ml.\n"
+                "1 boccia : 150€\n"
+                "2 bocce : 250€ (125€/boccia)\n"
+                "5 bocce : 400€ (80€/boccia)\n"
+                "10 bocce : 650€ (65€/boccia)\n"
+                "Sciroppo rosa, dolce, da mischiare ad una bevanda a piacere! 🥤\n"
+                "Concentrato di codeina, da usare con cautela e rispetto per la sostanza!\n"
+                "Consigliamo sempre i dosaggi minimi efficaci, quindi: 80/100mg di codeina"
+                "spedizione e stealth : 10€"
+            ),
+            "photo_file_id": "AgACAgQAAxkBAAIQMWjx3TaXcjD-n-_Molz6e1XmiVvyAAL4yDEbhq2QU8m5A7wedcXKAQADAgADeQADNgQ",
+        },
 
         # stimolanti
         "stim_boliviana": {
