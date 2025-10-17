@@ -195,7 +195,7 @@ class ShopBot:
                 "10 bocce : 650€ (65€/boccia)\n"
                 "Sciroppo rosa, dolce, da mischiare ad una bevanda a piacere! 🥤\n"
                 "Concentrato di codeina, da usare con cautela e rispetto per la sostanza!\n"
-                "Consigliamo sempre i dosaggi minimi efficaci, quindi: 80/100mg di codeina"
+                "Consigliamo sempre i dosaggi minimi efficaci, quindi: 80/100mg di codeina.\n"
                 "spedizione e stealth : 10€"
             ),
             "photo_file_id": "AgACAgQAAxkBAAIQMWjx3TaXcjD-n-_Molz6e1XmiVvyAAL4yDEbhq2QU8m5A7wedcXKAQADAgADeQADNgQ",
@@ -675,11 +675,12 @@ class ShopBot:
                 context.user_data["last_menu_msg_id"] = sent.message_id
                 return
         
-            # Pharma special submenu (product + DM + back)
+            # Pharma special submenu: list all pharma products + DM + back
             if cat_key == "pharma":
                 rows = []
-                if "ph_ossyrup" in self.products:
-                    rows.append([InlineKeyboardButton(self.products["ph_ossyrup"]["name"], callback_data="product_ph_ossyrup")])
+                for pid, p in self.products.items():
+                    if p.get("category") == "pharma":
+                        rows.append([InlineKeyboardButton(p["name"], callback_data=f"product_{pid}")])
                 rows.append([InlineKeyboardButton("🤫 Per più info", url=CONTACT_URL)])
                 rows.append([InlineKeyboardButton("⬅️ Indietro", callback_data="menu")])
                 sent = await context.bot.send_message(
@@ -689,7 +690,7 @@ class ShopBot:
                 )
                 context.user_data["last_menu_msg_id"] = sent.message_id
                 return
-        
+
             # Normal categories
             has_any = any(p.get("category") == cat_key for p in self.products.values())
             if has_any:
