@@ -262,6 +262,18 @@ class ShopBot:
             ),
             "photo_file_id": "AgACAgQAAxkBAAIBTGjqvZAViZIH6CNVIFjmNvbomS_cAALtyzEb7-5ZUxfFLUhpXXiZAQADAgADeQADNgQ",
         },
+        "psy_funghi": {
+            "category": "psichedelici",
+            "name": "🍄 FUNGHETTI MAGICI 🍄",
+            "caption": (
+                "5 gr : 60€ (12€/gr)\n"
+                "10 gr : 100€ (10€/gr)\n"
+                "20 gr : 160€ (8€/gr)\n\n"
+                "Strain disponibili: McKennai e Golden Teacher\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": "BAACAgQAAxkBAAIT0Wj0mTlgxow-KP0LUdfHnh8DtIb2AAL4GAACKJqgU5qPB17682DLNgQ",
+        },
         "psy_dmt_cart": {
             "category": "psichedelici",
             "name": "🤩 DMT 1ml cart 0.6gr/ml 🫥🫨",
@@ -294,6 +306,24 @@ class ShopBot:
                 "spedizione e stealth : 10€"
             ),
             "video_file_id": "BAACAgQAAxkBAAINZ2jvMps1PT-TnRZS_SWneMtQMZ6wAALOGgACOMZ5U1CQJUwVm66MNgQ",
+        },
+        "can_wedding_gelato": {
+            "category": "cannabis",
+            "c_sub": "weed",
+            "name": "💍 WEDDING GELATO 🍰🤤",
+            "caption": (
+                "Cali 100% biologica\n\n"
+                "10 gr : 120€ (12€/gr)\n"
+                "20 gr : 200€ (10€/gr)\n"
+                "50 gr : 420€ (8.4€/gr)\n"
+                "100 gr : 700€ (7€/gr)\n\n"
+                "Genetica californiana, coltivata outdoor, sulle mediterranee montagne italiane🇮🇹, con amore e passsione;\n"
+                "Odori terrosi da vera erba, con note di limone, menta e vaniglia;\n"
+                "Potenza, fuori dal comune come tutte le outdoor fatte con vero amore ❤️ ;\n"
+                "Quantità molto limitate, approfittate finché c’è!\n"
+                "spedizione e stealth : 10€"
+            ),
+            "video_file_id": "BAACAgQAAxkBAAITz2j0mS9OZXjVBcPoK_M2_kg4_bWGAAL3GAACKJqgU_C6g6tf-PN5NgQ",
         },
         "can_frozen_magic": {
             "category": "cannabis",
@@ -514,6 +544,7 @@ class ShopBot:
             [InlineKeyboardButton("🛍️ Menù", callback_data="menu")],
             [InlineKeyboardButton("⭐️ Recensioni", url=REVIEWS_URL)],
             [InlineKeyboardButton("🔌 Contatto", url=CONTACT_URL)],
+            [InlineKeyboardButton("📣 Canale", callback_data="canale")],  # <-- add this row
             [InlineKeyboardButton("💰 Pagamenti", callback_data="payments")],
             [InlineKeyboardButton("🏷️ Promo", callback_data="promo")],
             [InlineKeyboardButton("📋 T.O.S", callback_data="tos")],
@@ -646,6 +677,19 @@ class ShopBot:
             sent = await context.bot.send_message(
                 chat_id=cid,
                 text="🏷️ Promo\n\nSconto di 10€ sull'ordine successivo se viene effettuata recensione onesta, ben curata e con fotografia.",
+                reply_markup=InlineKeyboardMarkup(kb)
+            )
+            context.user_data["last_menu_msg_id"] = sent.message_id
+            return
+            
+        if d == "canale":
+            kb = [
+                [InlineKeyboardButton("Entra nel canale", url="https://t.me/+Y1xA--eo9HswNjc0")],
+                [InlineKeyboardButton("⬅️ Indietro", callback_data="back_to_home")],
+            ]
+            sent = await context.bot.send_message(
+                chat_id=cid,
+                text="Per restare sempre aggiornati in tempo reali su nuovi arrivi e sconti !",
                 reply_markup=InlineKeyboardMarkup(kb)
             )
             context.user_data["last_menu_msg_id"] = sent.message_id
