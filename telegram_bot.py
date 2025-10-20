@@ -343,6 +343,40 @@ class ShopBot:
             ),
             "video_file_id": "BAACAgQAAxkBAAINv2jwWoXBzfgkOTCeWLPEnXpVVKY8AAJtGQAChq2IU5vtVjG_SmvfNgQ",
         },
+        "can_top_dry_jocker": {
+            "category": "cannabis",
+            "c_sub": "hashish",
+            "name": "🍫 TOP DRY Jocker Farm 🤡",
+            "caption": (
+                "20 gr : 180€ (9€/gr)\n"
+                "50 gr : 350€ (7€/gr)\n"
+                "100 gr : 600€ (6€/gr)\n\n"
+                "Filtrato di qualità premium;\n"
+                "Curato a regola d’arte, consistenza perfetta;\n"
+                "Profumo dolce, fruttato, forte e penetrante e potenza insensata;\n"
+                "Rapporto qualità/prezzo migliore che potrete trovare in giro, il bandito ve lo assicura 😉\n"
+                "spedizione e stealth : 10€"
+            ),
+            "photo_file_id": "AgACAgQAAxkBAAIVXWj2EOX23348Rc_JELtpvdfU4Qb3AALzyDEb0KWwU_-_ti2Pf87hAQADAgADeAADNgQ",
+            "video_file_id": None,
+        },
+        "can_static_balenciaga": {
+            "category": "cannabis",
+            "c_sub": "hashish",
+            "name": "🍫 STATIC Balenciaga Farm 👑",
+            "caption": (
+                "🎁 static sift 73/190, prodotto di lusso, solo per veri intenditori\n"
+                "20 gr : 200€ (10€/gr)\n"
+                "50 gr : 400€ (8€/gr)\n"
+                "100 gr : 650€ (6.5€/gr)\n\n"
+                "Vero static, ogni tiro sarà un una vera goduria per olfatto e palato;\n"
+                "High molto potente ma allo stesso tempo pulita e presa a bene;\n"
+                "Non il solito hash di buona qualità spacciato per ‘frozen’ a prezzi esorbitanti, provare per credere!\n"
+                "spedizione e stealth : 10€"
+            ),
+            "photo_file_id": "AgACAgQAAxkBAAIVX2j2EOjAz_cblE3lDY746hYuo8YtAAL0yDEb0KWwU530g9J9Iz-MAQADAgADeAADNgQ",
+            "video_file_id": None,
+        },
         "can_thc_lean": {
             "category": "cannabis",
             "c_sub": "edibles",
