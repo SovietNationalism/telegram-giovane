@@ -9,7 +9,7 @@ from telegram.error import BadRequest
 
 # ─────────────────────────  CONFIG  ───────────────────────── #
 
-BOT_TOKEN         = os.getenv("BOT_")
+BOT_TOKEN         = os.getenv("BOT_TOKEN")
 ADMIN_USER_IDS    = {6840588025, 7602444648} 
 USERS_DB = "users.json"
 
