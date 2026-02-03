@@ -41,40 +41,32 @@ def create_order_row(order):
 
 def parse_flexible_order(text):
     text_lower = text.lower()
-    products = []  # ✅ AGGIUNGI QUESTA RIGA
+    products = []
     
     # Username
-    username_match = re.search(r'@[a-zA-Z0-9_]+', text)  # ✅ SEMPLICE e corretto
+    username_match = re.search(r'@[a-zA-Z0-9_]+', text)
     username = username_match.group(0) if username_match else "unknown"
     
-    # Price - CORRETTO per "75€"
-    price_match = re.search(r'(\d{1,4}(?:[.,]\d+)?)\s*€?', text_lower)  # ? per € opzionale
-    price_raw = price_match.group(1).replace(',', '.') if price_match else "??"
-    price = price_raw + "€"  # ✅ SEMPRE un solo €
+    # Price - ULTIMO € trovato
+    price_matches = re.findall(r'(\d{1,4}(?:[.,]\d+)?)\s*€', text_lower)
+    price = price_matches[-1].replace(',', '.') + "€" if price_matches else "??€"
     
-    # Products grams - CORRETTO per "10g Dry"
-    gram_matches = re.findall(r'(\d+(?:[.,]\d+)?)\s*(g|gr|grammi?|frozen|hash|dry|weed|erba)', text_lower, re.IGNORECASE)
-    for qty, product_hint in gram_matches:
-        product_name = product_hint.lower().strip()
-        # ❌ product_hint è SEMPRE "g" per "10g Dry" !
-
-    # Products - METODO COMPLETAMENTE NUOVO E ROBUSTO
-    # Cerca TUTTI "numero g/unità + prodotto"
+    # Products - tutti i pattern
     product_patterns = [
-        r'(\d+(?:[.,]\d+)?)\s*(g|gr)\s+([a-z\s]+?)(?=\s+\d|g|€|$)',  # 10g dry
-        r'(\d+(?:[.,]\d+)?)\s+([a-z]+?)(?:\s+g|\s*€|$)',              # 10 dry g
-        r'(\d{2,})\s*(hash|frozen|dry|vape|vapes|weed|filtrato|og|cali)',         # 190 hash
+        r'(\d+(?:[.,]\d+)?)\s*(g|gr)\s+([a-z\s]+?)(?=\s+\d|g|€|$)',
+        r'(\d+(?:[.,]\d+)?)\s+([a-z]+?)(?:\s+g|\s*€|$)',
+        r'(\d{2,})\s*(hash|frozen|dry|weed|filtrato|og|cali)',
     ]
     
     for pattern in product_patterns:
         matches = re.findall(pattern, text_lower, re.IGNORECASE)
         for match in matches:
             qty = match[0].replace(',', '.')
-            if len(match) == 3:  # g + product
-                product_name = match[2].strip().split()[0]  # Prende prima parola dopo g
-            else:  # qty + product
+            if len(match) == 3:
+                product_name = match[2].strip().split()[0]
+            else:
                 product_name = match[1]
-            products.append({'qty': f"{qty}g", 'product': product_name})
+            products.append({'qty': f"{qty}g", 'product': product_name.lower()})
     
     # Rimuovi duplicati
     seen = set()
@@ -86,24 +78,24 @@ def parse_flexible_order(text):
             unique_products.append(p)
     products = unique_products[:6]
     
-    # Name, phone, email, address - CORRETTO
+    # Name, phone, email, address
     name_match = re.search(r'([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)', text)
     name = name_match.group(1) if name_match else ""
     
-    phone_match = re.search(r'[\+]?3[89]\d{8,10}', text)
+    phone_match = re.search(r'[\+]?[3][89]\d{8,10}', text)
     phone = phone_match.group(0) if phone_match else ""
     
     email_match = re.search(r'[\w\.-]+@[\w\.-]+', text)
     email = email_match.group(0) if email_match else ""
     
-    address_match = re.search(r'(via|viale|corso|locker|inpost).*?\d+', text, re.IGNORECASE)
+    address_match = re.search(r'(via|viale|corso|locker|inpost|tabacchino).*?\d+', text, re.IGNORECASE)
     address = address_match.group(0)[:80] if address_match else ""
     
     note = f"{name}, {phone}, {email}, {address}".strip(", ")
     
     return {
         'cliente': username,
-        'products': products[:6],
+        'products': products,
         'prezzo': price,
         'note': note,
         'pacco_pronto': False,
@@ -239,12 +231,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         orders.append(parsed)
         save_orders()
         preview = create_order_row(parsed)
+        status = "✅✅" if parsed.get('pacco_pronto') and parsed.get('pacco_consegnato') else "✅❌" if parsed.get('pacco_pronto') else "❌❌"
         await update.message.reply_text(
             f"✅ **Aggiunto!**\n\n{preview}\n\nNote: {parsed['note']}\n\n/start",
             parse_mode='Markdown'
         )
-        context.user_data['waiting_order'] = False
-        return
 
     # Auto-detect order-like messages - PIÙ LARGHE
     order_keywords = ['g', 'gr', 'ordinare', 'weed', 'ordine', 'grammi', 'hash', 'frozen', 'dabwood', 'lean', 'filtr', 'og', 'cali', 'dry']  # ✅ Added 'dry'
