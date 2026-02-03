@@ -178,6 +178,12 @@ def build_orders_keyboard(order_id: int) -> InlineKeyboardMarkup:
     )
 
 
+def build_orders_list_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("Pronto", callback_data="ready_prompt")]]
+    )
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = (
         "Ciao! Inviami un messaggio con il form ordine compilato e lo salverò.\n\n"
@@ -205,8 +211,9 @@ async def list_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         prodotti = order.get("prodotti", "-")
         quantita = order.get("quantita", "-")
         product_summary = prodotti if quantita == "-" else f"{prodotti} ({quantita})"
-        lines.append(f"{order['id']}. {username} | {product_summary}")
-    await update.message.reply_text("\n".join(lines))
+        ready_marker = " | ✅" if order.get("ready") else ""
+        lines.append(f"{order['id']}. {username} | {product_summary}{ready_marker}")
+    await update.message.reply_text("\n".join(lines), reply_markup=build_orders_list_keyboard())
 
 
 async def show_order(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -268,6 +275,10 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await query.answer()
     if not query.data:
         return
+    if query.data == "ready_prompt":
+        context.user_data["awaiting_ready_order"] = True
+        await query.message.reply_text("Inserisci il numero dell'ordine da segnare come pronto.")
+        return
     action, order_id = query.data.split(":", 1)
     if action != "delete":
         return
@@ -284,6 +295,21 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = update.message.text or ""
+    if context.user_data.pop("awaiting_ready_order", False):
+        order_id = text.strip()
+        if not order_id.isdigit():
+            await update.message.reply_text("Inserisci un numero ordine valido.")
+            return
+        data = load_orders()
+        orders = data.get("orders", [])
+        for order in orders:
+            if str(order["id"]) == order_id:
+                order["ready"] = True
+                save_orders(data)
+                await update.message.reply_text(f"✅ Ordine #{order_id} segnato come pronto.")
+                return
+        await update.message.reply_text("Ordine non trovato.")
+        return
     parsed = parse_order_message(text)
     if not parsed:
         return
