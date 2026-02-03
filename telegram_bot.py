@@ -7,12 +7,14 @@ from typing import List, Dict, Any
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
+# Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Your bot token
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
-    raise ValueError("❌ BOT_TOKEN non trovato!")
+    raise ValueError("❌ BOT_TOKEN not found! Set env variable.")
 
 orders: List[Dict[str, Any]] = []
 
@@ -62,7 +64,7 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
         'pacco_pronto': False,
         'pacco_consegnato': False,
         'data': datetime.now().isoformat(),
-        'raw_text': original_text  # Keep original for editing
+        'raw_text': original_text
     }
     
     # 1. USERNAME (@username)
@@ -173,7 +175,7 @@ def create_order_row(order: Dict[str, Any]) -> str:
         products_str += f" +{len(order['products'])-3}"
     
     status = "✅✅" if order.get('pacco_pronto') and order.get('pacco_consegnato') else "✅❌" if order.get('pacco_pronto') else "❌❌"
-    return f"{order['cliente']} | {products_str} | {order['prezzo']}€ | {status}"
+    return f"{order['cliente']} | {products_str} | {order['prezzo']} | {status}"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_orders_page(update, context, page=0)
@@ -199,8 +201,8 @@ async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, p
             
             # Per ogni ordine: Edit + Toggle
             row = [
-                InlineKeyboardButton("✏️", callback_data=f"edit_{i}"),
-                InlineKeyboardButton("✅", callback_data=f"ready_{i}")
+                InlineKeyboardButton("✏️", callback_data=f"edit_{orders.index(order)}"),
+                InlineKeyboardButton("✅", callback_data=f"ready_{orders.index(order)}")
             ]
             keyboard.append(row)
         
@@ -257,10 +259,9 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "stats":
         total = len(orders)
         open_count = len([o for o in orders if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))])
-        revenue = sum(float(o['prezzo'].replace('€', '').replace(',', '.')) for o in orders if o['prezzo'] != '??€')
+        revenue = sum(float(o['prezzo'].replace('€', '').replace(',', '.')) for o in orders if '€' in o['prezzo'] and '?' not in o['prezzo'])
         
-        # Product totals
-        grams_total = sum(float(p['qty'].replace('g', '')) for o in orders for p in o['products'] if 'g' in p['qty'])
+        grams_total = sum(float(re.search(r'\d+', p['qty']).group()) for o in orders for p in o['products'] if 'g' in p['qty'])
         
         text = f"""📊 **STATISTICHE COMPLETA**
 
@@ -328,7 +329,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         save_orders()
         
         await update.message.reply_text(
-            f"✅ **Ordine {order_idx+1} modificato!**\n\n{create_order_row(parsed)}",
+            f"✅ **Ordine modificato!**\n\n{create_order_row(parsed)}",
             parse_mode='Markdown'
         )
         context.user_data.pop('editing_order', None)
@@ -356,11 +357,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parsed = parse_flexible_order(text)
         await update.message.reply_text(
             f"🤖 **Auto-rilevato:**\n{create_order_row(parsed)}\n\n"
-            f"`SI` = aggiungi | `NO` = ignora | Invia testo corretto",
+            f"`SI` = aggiungi | `NO` = ignora",
             parse_mode='Markdown'
         )
-        context.user_data['auto_confirm'] = True
-        context.user_data['auto_parsed'] = parsed
+        context.user_data['pending_order'] = parsed
+        return
+        
+    if context.user_data.get('pending_order'):
+        if text.lower() == 'si':
+            parsed = context.user_data['pending_order']
+            orders.append(parsed)
+            save_orders()
+            await update.message.reply_text(f"✅ Aggiunto!\n{create_order_row(parsed)}")
+        context.user_data.pop('pending_order', None)
 
 def main():
     application = Application.builder().token(BOT_TOKEN).build()
