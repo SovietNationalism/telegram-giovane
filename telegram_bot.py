@@ -181,48 +181,54 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: int = 0):
     open_orders = [o for o in orders if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))]
     
+    text = f"📋 **ORDINI APERTI** ({len(open_orders)})\n\n"
+    keyboard = []
+    
     if not open_orders:
-        text = "✅ **Nessun ordine aperto!**"
-        keyboard = [[InlineKeyboardButton("➕ Nuovo ordine", callback_data="add")]]
+        text += "✅ Nessun ordine aperto!"
+        keyboard = [[InlineKeyboardButton("➕ Nuovo", callback_data="add")]]
     else:
-        per_page = 7
+        per_page = 6
         total_pages = (len(open_orders) + per_page - 1) // per_page
         start_idx = page * per_page
-        page_orders = open_orders[start_idx:start_idx + per_page]
+        end_idx = min(start_idx + per_page, len(open_orders))
         
-        text = f"📋 **ORDINI APERTI** ({len(open_orders)}) - Pagina {page+1}/{total_pages}\n\n"
-        keyboard_rows = []
+        for i in range(start_idx, end_idx):
+            order = open_orders[i]
+            text += f"{i+1}. {create_order_row(order)}\n"
+            
+            # Per ogni ordine: Edit + Toggle
+            row = [
+                InlineKeyboardButton("✏️", callback_data=f"edit_{i}"),
+                InlineKeyboardButton("✅", callback_data=f"ready_{i}")
+            ]
+            keyboard.append(row)
         
-        for i, order in enumerate(page_orders, start_idx+1):
-            text += f"{i}. {create_order_row(order)}\n"
-            # Per-order buttons
-            keyboard_rows.append([
-                InlineKeyboardButton("✏️ Modifica", callback_data=f"edit_{open_orders.index(order)}"),
-                InlineKeyboardButton("✅ Pronto", callback_data=f"ready_{open_orders.index(order)}")
-            ])
-        
-        # Navigation
+        # Navigazione
         nav_row = []
         if page > 0:
-            nav_row.append(InlineKeyboardButton("⬅️ Prec", callback_data=f"p_{page-1}"))
-        if page < total_pages - 1:
-            nav_row.append(InlineKeyboardButton("Succ ➡️", callback_data=f"p_{page+1}"))
+            nav_row.append(InlineKeyboardButton("⬅️", callback_data=f"p_{page-1}"))
+        if end_idx < len(open_orders):
+            nav_row.append(InlineKeyboardButton("➡️", callback_data=f"p_{page+1}"))
         if nav_row:
-            keyboard_rows.append(nav_row)
+            keyboard.append(nav_row)
         
-        keyboard_rows.extend([
+        # Bottom buttons
+        keyboard.extend([
             [InlineKeyboardButton("➕ Nuovo", callback_data="add")],
             [InlineKeyboardButton("📊 Stats", callback_data="stats")]
         ])
-        
-        keyboard = InlineKeyboardMarkup(keyboard_rows)
     
-    reply_markup = InlineKeyboardMarkup(keyboard_rows) if 'keyboard_rows' in locals() else InlineKeyboardMarkup(keyboard)
+    reply_markup = InlineKeyboardMarkup(keyboard)
     
-    if update.callback_query:
-        await update.callback_query.edit_message_text(text, reply_markup=reply_markup, parse_mode='Markdown')
-    else:
-        await update.message.reply_text(text, reply_markup=reply_markup, parse_mode='Markdown')
+    try:
+        if update.callback_query:
+            await update.callback_query.edit_message_text(text, reply_markup=reply_markup, parse_mode='Markdown')
+        else:
+            await update.message.reply_text(text, reply_markup=reply_markup, parse_mode='Markdown')
+    except Exception as e:
+        logger.error(f"Keyboard error: {e}")
+        await update.effective_message.reply_text(text)
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -357,17 +363,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['auto_parsed'] = parsed
 
 def main():
-    """Main bot runner"""
     application = Application.builder().token(BOT_TOKEN).build()
-
-    # Handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_callback))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    # Start bot
     print("🚀 Bot avviato!")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
