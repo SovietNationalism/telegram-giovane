@@ -41,60 +41,47 @@ def create_order_row(order):
 
 def parse_flexible_order(text):
     text_lower = text.lower()
-    products = []  # ✅ ADD THIS LINE
+    products = []  # ✅ AGGIUNGI QUESTA RIGA
     
     # Username
-    username_match = re.search(r'@[\\w]+', text)
+    username_match = re.search(r'@[a-zA-Z0-9_]+', text)  # ✅ SEMPLICE e corretto
     username = username_match.group(0) if username_match else "unknown"
     
-    # Price - AGGIORNATO
-    price_match = re.search(r'(\\d{1,4}(?:\\.\\d+)?)\\s*€?', text_lower)
-    price = price_match.group(1) + "€" if price_match else "??€"
+    # Price - CORRETTO per "75€"
+    price_match = re.search(r'(\d{1,4}(?:[.,]\d+)?)\s*€', text_lower)
+    price = price_match.group(1).replace(',', '.') + "€" if price_match else "??€"
     
-    # Products grams MIGLIORATO - trova TUTTI i grammi
-    gram_matches = re.findall(r'(\\d+(?:\\.\\d+)?)\\s*(g|gr|grammi?|frozen|hash|dry)', text_lower, re.IGNORECASE)
+    # Products grams - CORRETTO per "10g Dry"
+    gram_matches = re.findall(r'(\d+(?:[.,]\d+)?)\s*(g|gr|grammi?|frozen|hash|dry|weed|erba)', text_lower, re.IGNORECASE)
     for qty, product_hint in gram_matches:
-        product_name = product_hint.lower()
-        if 'frozen' in product_name:
-            product_name = 'frozen'
-        elif 'hash' in product_name:
-            product_name = 'hash'
-        elif 'dry' in product_name:  # ✅ Added for "Dry"
-            product_name = 'dry'
+        product_name = product_hint.lower().strip()
+        if any(x in product_name for x in ['frozen', 'hash', 'dry', 'weed', 'erba']):
+            product_name = product_hint.lower().strip()
         products.append({'qty': f"{qty}g", 'product': product_name})
 
-    # Numeri grandi senza unità (190 hash → 190g hash)
-    big_qty_matches = re.findall(r'(\d{2,})\s*(hash|frozen|weed|erba|calispain|dry|fumo|filtrato|og|cali)', text_lower)
-    for qty, prod in big_qty_matches:
-        products.append({'qty': f"{qty}g", 'product': prod})
-
-    # Specific items (IL TUO CODICE FUNZIONANTE)
+    # Specific items - SEMPLIFICATO
     specifics = {
-        'dabwoods': re.findall(r'(\\d*)\\s*dabwoods?', text_lower),
-        'packwoods': re.findall(r'(\\d*)\\s*packwoods?', text_lower),
-        'backwoods': re.findall(r'(\\d*)\\s*backwoods?', text_lower),
-        'lean': re.findall(r'(\\d*)\\s*lean', text_lower),
-        'lsd': re.findall(r'(\\d*)\\s*lsd', text_lower),
-        'oxy': re.findall(r'(\\d*)\\s*oxy', text_lower),
-        'vape': re.findall(r'(\\d*)\\s*vape', text_lower),
-        'pen': re.findall(r'(\\d*)\\s*pen', text_lower)
+        'dabwoods': re.findall(r'(\d*)\s*dabwoods?', text_lower),
+        'packwoods': re.findall(r'(\d*)\s*packwoods?', text_lower),
+        'backwoods': re.findall(r'(\d*)\s*backwoods?', text_lower),
+        'lean': re.findall(r'(\d*)\s*lean', text_lower),
     }
     for item, qtys in specifics.items():
         for qty in qtys:
-            if qty:  # Solo se trova quantità
-                products.append({'qty': qty, 'product': item})
+            if qty:
+                products.append({'qty': qty + 'x', 'product': item})
     
-    # Name, phone, email, address (IL TUO CODICE FUNZIONANTE)
-    name_match = re.search(r'([A-Z][a-z]+(?:\\s[A-Z][a-z]+)+)', text)
+    # Name, phone, email, address - CORRETTO
+    name_match = re.search(r'([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)', text)
     name = name_match.group(1) if name_match else ""
     
-    phone_match = re.search(r'(?:tel:)?\s*(\d{10,11})|3[89]\d{8}', text)
+    phone_match = re.search(r'[\+]?3[89]\d{8,10}', text)
     phone = phone_match.group(0) if phone_match else ""
     
-    email_match = re.search(r'[\\w\\.-]+@[\\w\\.-]+', text)
+    email_match = re.search(r'[\w\.-]+@[\w\.-]+', text)
     email = email_match.group(0) if email_match else ""
     
-    address_match = re.search(r'(via|viale|corso|regione|locker|inpost).*?\\d+', text, re.IGNORECASE)
+    address_match = re.search(r'(via|viale|corso|locker|inpost).*?\d+', text, re.IGNORECASE)
     address = address_match.group(0)[:80] if address_match else ""
     
     note = f"{name}, {phone}, {email}, {address}".strip(", ")
