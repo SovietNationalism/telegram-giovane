@@ -80,23 +80,22 @@ def parse_order_message(text: str) -> Optional[Dict[str, str]]:
         return None
 
     parsed: Dict[str, str] = {}
+    label_patterns = [
+        (label, re.compile(rf"^\s*•?\s*{re.escape(label)}\s*:?\s*(.+)$", re.IGNORECASE))
+        for label in sorted(LABEL_MAP.keys(), key=len, reverse=True)
+    ]
     for raw_line in text.splitlines():
         line = raw_line.strip()
         if not line or "informazioni" in line.lower():
             continue
-        if line.startswith("•"):
-            line = line.lstrip("•").strip()
-        if not line:
-            continue
-
-        match = re.match(r"(.+?)\s+(.+)", line)
-        if not match:
-            continue
-        label, value = match.groups()
-        normalized = normalize_label(label)
-        field_key = LABEL_MAP.get(normalized)
-        if field_key:
-            parsed[field_key] = value.strip()
+        for label, pattern in label_patterns:
+            match = pattern.match(line)
+            if not match:
+                continue
+            field_key = LABEL_MAP.get(normalize_label(label))
+            if field_key:
+                parsed[field_key] = match.group(1).strip()
+            break
 
     if not parsed:
         return None
