@@ -156,7 +156,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_orders_page(update, context, 0)
 
 async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page=0):
-    open_orders = [o for o in orders if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))]
+    open_orders = [
+        (idx, o) for idx, o in enumerate(orders)
+        if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))
+    ]
     
     text = f"📋 **ORDINI APERTI** ({len(open_orders)})\n\n"
     keyboard = []
@@ -171,11 +174,11 @@ async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, p
         end_idx = min(start_idx + per_page, len(open_orders))
         
         for i in range(start_idx, end_idx):
-            order = open_orders[i]
+            order_idx, order = open_orders[i]
             text += f"{i+1}. {create_order_row(order)}\n"
             keyboard.append([
-                InlineKeyboardButton("✏️ Modifica", callback_data=f"edit_{i}"),
-                InlineKeyboardButton("✅ Pronto", callback_data=f"toggle_{i}")
+                InlineKeyboardButton("✏️ Modifica", callback_data=f"edit_{order_idx}"),
+                InlineKeyboardButton("✅ Pronto", callback_data=f"toggle_{order_idx}")
             ])
         
         # Paginazione
@@ -296,6 +299,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ **Aggiunto!**\n\n{preview}\n\nNote: {parsed['note']}\n\n/start",
             parse_mode='Markdown'
         )
+        context.user_data['waiting_order'] = False
+        return
 
     # Auto-detect order-like messages - PIÙ LARGHE
     order_keywords = ['g', 'gr', 'ordinare', 'weed', 'ordine', 'grammi', 'hash', 'frozen', 'dabwood', 'lean', 'filtr', 'og', 'cali', 'dry']  # ✅ Added 'dry'
