@@ -30,14 +30,14 @@ orders = load_orders()
 
 def create_order_row(order):
     if not order['products']:
-        return f"{order['cliente']} | --vuoto-- | {order['prezzo']}€"
+        return f"{order['cliente']} | --vuoto-- | {order['prezzo']}"
     
     products_str = ', '.join([f"{p['qty']} {p['product']}" for p in order['products'][:3]])
     if len(order['products']) > 3:
         products_str += f" +{len(order['products'])-3}"
     
     status = "✅✅" if order.get('pacco_pronto') and order.get('pacco_consegnato') else "✅❌" if order.get('pacco_pronto') else "❌❌"
-    return f"{order['cliente']} | {products_str} | {order['prezzo']}€ | {status}"
+    return f"{order['cliente']} | {products_str} | {order['prezzo']} | {status}"  # ✅ Rimossi € extra
 
 def parse_flexible_order(text):
     text_lower = text.lower()
@@ -48,28 +48,43 @@ def parse_flexible_order(text):
     username = username_match.group(0) if username_match else "unknown"
     
     # Price - CORRETTO per "75€"
-    price_match = re.search(r'(\d{1,4}(?:[.,]\d+)?)\s*€', text_lower)
-    price = price_match.group(1).replace(',', '.') + "€" if price_match else "??€"
+    price_match = re.search(r'(\d{1,4}(?:[.,]\d+)?)\s*€?', text_lower)  # ? per € opzionale
+    price_raw = price_match.group(1).replace(',', '.') if price_match else "??"
+    price = price_raw + "€"  # ✅ SEMPRE un solo €
     
     # Products grams - CORRETTO per "10g Dry"
     gram_matches = re.findall(r'(\d+(?:[.,]\d+)?)\s*(g|gr|grammi?|frozen|hash|dry|weed|erba)', text_lower, re.IGNORECASE)
     for qty, product_hint in gram_matches:
         product_name = product_hint.lower().strip()
-        if any(x in product_name for x in ['frozen', 'hash', 'dry', 'weed', 'erba']):
-            product_name = product_hint.lower().strip()
-        products.append({'qty': f"{qty}g", 'product': product_name})
+        # ❌ product_hint è SEMPRE "g" per "10g Dry" !
 
-    # Specific items - SEMPLIFICATO
-    specifics = {
-        'dabwoods': re.findall(r'(\d*)\s*dabwoods?', text_lower),
-        'packwoods': re.findall(r'(\d*)\s*packwoods?', text_lower),
-        'backwoods': re.findall(r'(\d*)\s*backwoods?', text_lower),
-        'lean': re.findall(r'(\d*)\s*lean', text_lower),
-    }
-    for item, qtys in specifics.items():
-        for qty in qtys:
-            if qty:
-                products.append({'qty': qty + 'x', 'product': item})
+    # Products - METODO COMPLETAMENTE NUOVO E ROBUSTO
+    # Cerca TUTTI "numero g/unità + prodotto"
+    product_patterns = [
+        r'(\d+(?:[.,]\d+)?)\s*(g|gr)\s+([a-z\s]+?)(?=\s+\d|g|€|$)',  # 10g dry
+        r'(\d+(?:[.,]\d+)?)\s+([a-z]+?)(?:\s+g|\s*€|$)',              # 10 dry g
+        r'(\d{2,})\s*(hash|frozen|dry|vape|vapes|weed|filtrato|og|cali)',         # 190 hash
+    ]
+    
+    for pattern in product_patterns:
+        matches = re.findall(pattern, text_lower, re.IGNORECASE)
+        for match in matches:
+            qty = match[0].replace(',', '.')
+            if len(match) == 3:  # g + product
+                product_name = match[2].strip().split()[0]  # Prende prima parola dopo g
+            else:  # qty + product
+                product_name = match[1]
+            products.append({'qty': f"{qty}g", 'product': product_name})
+    
+    # Rimuovi duplicati
+    seen = set()
+    unique_products = []
+    for p in products:
+        key = f"{p['qty']}_{p['product']}"
+        if key not in seen:
+            seen.add(key)
+            unique_products.append(p)
+    products = unique_products[:6]
     
     # Name, phone, email, address - CORRETTO
     name_match = re.search(r'([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)', text)
