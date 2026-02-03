@@ -77,21 +77,16 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
     }
 
     # 1. Username @username
-    username_match = re.search(r'@[\w\d_]{3,32}', text)  # NO \ 
+    username_match = re.search(r'@[\w\d_]{3,32}', text)
     if username_match:
         parsed['cliente'] = username_match.group(0)
 
-    # 2. Prezzi (€, euro, euri, totale)
+    # 2. Prezzi
     price_patterns = [
         r'(\d+(?:\.\d{1,2})?)\s*€?',
         r'(\d+(?:\.\d{1,2})?)\s*(?:euro|euri)',
         r'totale\s*:?\s*(\d+(?:\.\d{1,2})?)'
     ]
-    for pattern in price_patterns:
-        price_match = re.search(pattern, text_lower)
-        if price_match:
-            parsed['prezzo'] = f"{price_match.group(1)}€"
-            break
 
     # 3. Grammi (5g filtrato, 20g OG, ecc.)
     gram_patterns = [
@@ -187,13 +182,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: int = 0):
-    """Mostra ordini aperti con paginazione (max 6 per pagina)"""
-    open_orders = [o for o in orders
-                   if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))]
-
+    open_orders = [o for o in orders if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))]
+    
     text = f"📋 **ORDINI APERTI** ({len(open_orders)})\n\n"
     keyboard = []
-
+    
     if not open_orders:
         text += "✅ Nessun ordine aperto!"
         keyboard = [[InlineKeyboardButton("➕ Nuovo ordine", callback_data="add")]]
@@ -202,42 +195,38 @@ async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, p
         total_pages = (len(open_orders) + per_page - 1) // per_page
         start_idx = page * per_page
         end_idx = min(start_idx + per_page, len(open_orders))
-
+        
         for i in range(start_idx, end_idx):
             order = open_orders[i]
             text += f"{i+1}. {create_order_row(order)}\n"
             keyboard.append([
                 InlineKeyboardButton("✏️ Modifica", callback_data=f"edit_{i}"),
-                InlineKeyboardButton("✅ Pronto/consegn.", callback_data=f"ready_{i}")
+                InlineKeyboardButton("✅ Pronto", callback_data=f"ready_{i}")
             ])
-
-        # Barra di navigazione
+        
+        # Navigazione
         nav_row = []
         if page > 0:
-            nav_row.append(InlineKeyboardButton("⬅️ Precedente", callback_data=f"p_{page-1}"))
+            nav_row.append(InlineKeyboardButton("⬅️", callback_data=f"p_{page-1}"))
         if end_idx < len(open_orders):
-            nav_row.append(InlineKeyboardButton("Successivo ➡️", callback_data=f"p_{page+1}"))
+            nav_row.append(InlineKeyboardButton("➡️", callback_data=f"p_{page+1}"))
         if nav_row:
             keyboard.append(nav_row)
-
-        # Bottom buttons
+        
         keyboard.extend([
-            [InlineKeyboardButton("➕ Nuovo ordine", callback_data="add")],
-            [InlineKeyboardButton("📊 Statistiche", callback_data="stats")]
+            [InlineKeyboardButton("➕ Nuovo", callback_data="add")],
+            [InlineKeyboardButton("📊 Stats", callback_data="stats")]
         ])
-
+    
     reply_markup = InlineKeyboardMarkup(keyboard)
+    
     try:
         if update.callback_query:
-            await update.callback_query.edit_message_text(
-                text, reply_markup=reply_markup, parse_mode='Markdown'
-            )
+            await update.callback_query.edit_message_text(text, reply_markup=reply_markup, parse_mode='Markdown')
         else:
             await update.message.reply_text(text, reply_markup=reply_markup, parse_mode='Markdown')
     except Exception as e:
-        logger.error(f"Error show_orders_page: {e}")
-        await update.effective_message.reply_text(text)
-
+        logger.error(f"Errore pagina: {e}")
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Callback inline: paginazione, edit, toggle, stats, ecc."""
@@ -385,6 +374,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='Markdown'
         )
         context.user_data['auto_confirm'] = True
+
+    # Auto-confirm SI/NO
+    if context.user_data.get('auto_confirm'):
+        parsed = context.user_data['auto_parsed']
+        if 'si' in text_lower:
+            orders.append(parsed)
+            save_orders()
+            await update.message.reply_text(f"✅ Aggiunto!\n{create_order_row(parsed)}")
+        context.user_data.pop('auto_confirm', None)
+        context.user_data.pop('auto_parsed', None)
+        return
+
         
 def main():
     application = Application.builder().token(BOT_TOKEN).build()
