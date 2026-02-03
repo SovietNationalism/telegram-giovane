@@ -96,7 +96,7 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
     # 3. Grammi (5g filtrato, 20g OG, 30g dry, ecc.)
     gram_patterns = [
         r'(\d+(?:\.\d+)?)\s*(?:g|gr|gramm[io])\s*(?:di\s+)?([a-z\s]+?)(?=\s*(?:€|\d+g|$))',
-        r'(\d+(?:\.\d+)?)[ggr]?\s*([a-z\s]+?)(?=\s*(?:€|\d+g|$))',
+        r'(\d+(?:\.\d+)?)\s*[ggr]?\s*([a-z\s]+?)(?=\s*(?:€|\d+g|$))',
         r'(\d+(?:\.\d+)?)\s*(?:grammi?|gr?\.)?\s*([a-z]+)'
     ]
     for pattern in gram_patterns:
