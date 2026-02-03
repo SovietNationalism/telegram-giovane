@@ -103,11 +103,60 @@ def parse_flexible_order(text):
         'data': datetime.now().isoformat()
     }
 
+def normalize_price(raw_price):
+    if not raw_price:
+        return "??€"
+    price_matches = re.findall(r'(\d{1,4}(?:[.,]\d+)?)\s*€', raw_price.lower())
+    if price_matches:
+        return price_matches[-1].replace(',', '.') + "€"
+    fallback_match = re.search(r'(\d{1,4}(?:[.,]\d+)?)', raw_price)
+    if fallback_match:
+        return fallback_match.group(1).replace(',', '.') + "€"
+    return "??€"
+
+def parse_tabular_order_line(line):
+    parts = [part.strip() for part in re.split(r'\t+', line) if part.strip()]
+    if len(parts) < 4:
+        parts = [part.strip() for part in re.split(r'\s{2,}', line) if part.strip()]
+    if len(parts) < 4:
+        return None
+
+    cliente = parts[0]
+    prodotto = parts[1]
+    qty = parts[2]
+    price_raw = parts[3]
+    pacco_pronto = "✅" in parts[4] if len(parts) > 4 else False
+    pacco_consegnato = "✅" in parts[5] if len(parts) > 5 else False
+    note = " ".join(parts[6:]).strip() if len(parts) > 6 else ""
+
+    return {
+        'cliente': cliente,
+        'products': [{'qty': qty, 'product': prodotto}],
+        'prezzo': normalize_price(price_raw),
+        'note': note,
+        'pacco_pronto': pacco_pronto,
+        'pacco_consegnato': pacco_consegnato,
+        'data': datetime.now().isoformat()
+    }
+
+def parse_tabular_orders(text):
+    orders_parsed = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.lower().startswith("cliente"):
+            continue
+        parsed = parse_tabular_order_line(line)
+        if parsed:
+            orders_parsed.append(parsed)
+    return orders_parsed
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_orders_page(update, context, 0)
 
 async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page=0):
-    open_orders = [o for o in orders if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))]
+    open_orders = [(idx, o) for idx, o in enumerate(orders)]
     
     text = f"📋 **ORDINI APERTI** ({len(open_orders)})\n\n"
     keyboard = []
@@ -122,11 +171,11 @@ async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, p
         end_idx = min(start_idx + per_page, len(open_orders))
         
         for i in range(start_idx, end_idx):
-            order = open_orders[i]
+            order_idx, order = open_orders[i]
             text += f"{i+1}. {create_order_row(order)}\n"
             keyboard.append([
-                InlineKeyboardButton("✏️ Modifica", callback_data=f"edit_{i}"),
-                InlineKeyboardButton("✅ Pronto", callback_data=f"toggle_{i}")
+                InlineKeyboardButton("✏️ Modifica", callback_data=f"edit_{order_idx}"),
+                InlineKeyboardButton("✅ Pronto", callback_data=f"toggle_{order_idx}")
             ])
         
         # Paginazione
@@ -214,6 +263,32 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     text_lower = text.lower()  # ✅ ADD THIS LINE
+
+    pending_order = context.user_data.get('pending_order')
+    if pending_order and text_lower.strip() in {"si", "sì", "yes"}:
+        orders.append(pending_order)
+        save_orders()
+        await update.message.reply_text(
+            f"✅ **Aggiunto!**\n\n{create_order_row(pending_order)}\n\nNote: {pending_order['note']}\n\n/start",
+            parse_mode='Markdown'
+        )
+        context.user_data.pop('pending_order', None)
+        return
+    if pending_order and text_lower.strip() in {"no", "n"}:
+        context.user_data.pop('pending_order', None)
+        await update.message.reply_text("❌ Ordine ignorato.\n\n/start", parse_mode='Markdown')
+        return
+
+    if "\n" in text and ("\t" in text or text_lower.startswith("cliente")):
+        bulk_orders = parse_tabular_orders(text)
+        if bulk_orders:
+            orders.extend(bulk_orders)
+            save_orders()
+            await update.message.reply_text(
+                f"✅ Importati {len(bulk_orders)} ordini!\n\n/start",
+                parse_mode='Markdown'
+            )
+            return
     
     # Editing
     if context.user_data.get('editing_idx') is not None:
@@ -236,6 +311,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"✅ **Aggiunto!**\n\n{preview}\n\nNote: {parsed['note']}\n\n/start",
             parse_mode='Markdown'
         )
+        context.user_data['waiting_order'] = False
+        return
 
     # Auto-detect order-like messages - PIÙ LARGHE
     order_keywords = ['g', 'gr', 'ordinare', 'weed', 'ordine', 'grammi', 'hash', 'frozen', 'dabwood', 'lean', 'filtr', 'og', 'cali', 'dry']  # ✅ Added 'dry'
