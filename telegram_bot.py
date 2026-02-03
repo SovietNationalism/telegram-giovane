@@ -218,7 +218,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     
     # Editing
-    if 'editing_idx' in context.user_data:
+    if context.user_data.get('editing_idx') is not None:
         idx = context.user_data['editing_idx']
         parsed = parse_flexible_order(text)
         orders[idx] = parsed
@@ -227,19 +227,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop('editing_idx')
         return
 
-    # Editing - SOLO se in modalità editing
-    if context.user_data.get('editing_idx') is not None:
-        idx = context.user_data['editing_idx']
-        new_parsed = parse_flexible_order(text)  # ← RILEGGE TUTTO
-        orders[idx] = new_parsed
-        save_orders()
-        await update.message.reply_text(
-            f"✅ **AGGIORNATO!**\n\n{create_order_row(new_parsed)}\n/start",
-            parse_mode='Markdown'
-        )
-        context.user_data.pop('editing_idx')
-        return
-    
     # New order
     if context.user_data.get('waiting_order'):
         parsed = parse_flexible_order(text)
@@ -254,19 +241,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Auto-detect order-like messages - PIÙ LARGHE
-        order_keywords = ['g', 'gr', 'ordinare', 'weed', 'ordine', 'grammi', 'hash', 'frozen', 'dabwood', 'lean', 'filtr', 'og', 'cali']
-        if '€' in text_lower and any(kw in text_lower for kw in order_keywords):
-            parsed = parse_flexible_order(text)
-            preview = create_order_row(parsed)
-            await update.message.reply_text(
-                f"🤖 **Rilevato ordine:**\n{preview}\n\n"
-                f"`SI` per confermare\n"
-                f"`NO` per ignorare\n"
-                f"Oppure invia testo corretto",
-                parse_mode='Markdown'
-            )
-            context.user_data['pending_order'] = parsed
-            return
+    order_keywords = ['g', 'gr', 'ordinare', 'weed', 'ordine', 'grammi', 'hash', 'frozen', 'dabwood', 'lean', 'filtr', 'og', 'cali']
+    if '€' in text_lower and any(kw in text_lower for kw in order_keywords):
+        parsed = parse_flexible_order(text)
+        preview = create_order_row(parsed)
+        await update.message.reply_text(
+            f"🤖 **Rilevato ordine:**\n{preview}\n\n"
+            f"`SI` per confermare\n"
+            f"`NO` per ignorare\n"
+            f"Oppure invia testo corretto",
+            parse_mode='Markdown'
+        )
+        context.user_data['pending_order'] = parsed
+        return
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
