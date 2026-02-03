@@ -46,19 +46,25 @@ def parse_flexible_order(text):
     username_match = re.search(r'@[\\w]+', text)
     username = username_match.group(0) if username_match else "unknown"
     
-    # Price
-    price_match = re.search(r'(\\d+(?:\\.\\d+)?)\\s*€?', text_lower)
+    # Price - AGGIORNATO
+    price_match = re.search(r'(\d{1,4}(?:\.\d+)?)\s*€?', text_lower)
     price = price_match.group(1) + "€" if price_match else "??€"
     
-    # Products grams
-    gram_matches = re.findall(r'(\\d+(?:\\.\\d+)?)\\s*(g|grammi?|gr|ml)', text_lower)
-    products = []
-    for qty, unit in gram_matches:
-        # Miglior matching prodotti
-        product_hint = re.search(r'(filtrato|hash|dry|cali|og|lsd|oxy|jungle|elements|backwoods_pack|blunt)', text_lower)
-        product_name = product_hint.group(1) if product_hint else 'unknown'
-        products.append({'qty': f"{qty}{unit}", 'product': product_name})
-    
+    # Products grams MIGLIORATO - trova TUTTI i grammi
+    gram_matches = re.findall(r'(\d+(?:\.\d+)?)\s*(g|gr|grammi?|frozen|hash)', text_lower, re.IGNORECASE)
+    for qty, product_hint in gram_matches:
+        product_name = product_hint.lower()
+        if 'frozen' in product_name:
+            product_name = 'frozen'
+        elif 'hash' in product_name:
+            product_name = 'hash'
+        products.append({'qty': f"{qty}g", 'product': product_name})
+
+    # Numeri grandi senza unità (190 hash → 190g hash)
+    big_qty_matches = re.findall(r'(\d{2,})\s*(hash|frozen|weed|erba|calispain|dry|fumo|filtrato|og|cali)', text_lower)
+    for qty, prod in big_qty_matches:
+        products.append({'qty': f"{qty}g", 'product': prod})
+
     # Specific items (IL TUO CODICE FUNZIONANTE)
     specifics = {
         'dabwoods': re.findall(r'(\\d*)\\s*dabwoods?', text_lower),
@@ -79,7 +85,7 @@ def parse_flexible_order(text):
     name_match = re.search(r'([A-Z][a-z]+(?:\\s[A-Z][a-z]+)+)', text)
     name = name_match.group(1) if name_match else ""
     
-    phone_match = re.search(r'\\d{3}\\s?\\d{3,7}\\d{4}|\\+39\\d{9,10}', text)
+    phone_match = re.search(r'(?:tel:)?\s*(\d{10,11})|3[89]\d{8}', text)
     phone = phone_match.group(0) if phone_match else ""
     
     email_match = re.search(r'[\\w\\.-]+@[\\w\\.-]+', text)
@@ -186,8 +192,10 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         idx = int(data.split("_")[1])
         if 0 <= idx < len(orders):
             order = orders[idx]
-            text = f"✏️ **Modifica {order['cliente']}**\n\n{create_order_row(order)}\n\nInvia nuovo testo:"
-            await query.edit_message_text(text, parse_mode='Markdown')
+            text = f"✏️ **EDIT {order['cliente']}** | {create_order_row(order)}\n\n"
+            text += "Invia il **NUOVO MESSAGGIO COMPLETO** per aggiornare tutto:"
+            keyboard = [[InlineKeyboardButton("🗑 Elimina", callback_data=f"delete_{idx}")]]
+            await query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
             context.user_data['editing_idx'] = idx
     elif data.startswith("toggle_"):
         idx = int(data.split("_")[1])
@@ -197,6 +205,12 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 order['pacco_pronto'] = True
             elif not order.get('pacco_consegnato'):
                 order['pacco_consegnato'] = True
+            save_orders()
+        await show_orders_page(query, context, 0)
+    elif data.startswith("delete_"):
+        idx = int(data.split("_")[1])
+        if 0 <= idx < len(orders):
+            del orders[idx]
             save_orders()
         await show_orders_page(query, context, 0)
 
@@ -210,6 +224,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         orders[idx] = parsed
         save_orders()
         await update.message.reply_text(f"✅ Modificato!\n{create_order_row(parsed)}")
+        context.user_data.pop('editing_idx')
+        return
+
+    # Editing - REGENERA COMPLETO DAL NUOVO TESTO
+    if 'editing_idx' in context.user_data:
+        idx = context.user_data['editing_idx']
+        new_parsed = parse_flexible_order(text)  # ← RILEGGE TUTTO
+        orders[idx] = new_parsed
+        save_orders()
+        await update.message.reply_text(
+            f"✅ **AGGIORNATO!**\n\n{create_order_row(new_parsed)}\n/start",
+            parse_mode='Markdown'
+        )
         context.user_data.pop('editing_idx')
         return
     
