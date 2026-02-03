@@ -19,7 +19,6 @@ if not BOT_TOKEN:
 # Ordini in memoria (in produzione usa DB/SQlite)
 orders: List[Dict[str, Any]] = []
 
-
 def load_orders() -> List[Dict[str, Any]]:
     """Carica ordini da JSON o ritorna lista vuota"""
     try:
@@ -28,16 +27,13 @@ def load_orders() -> List[Dict[str, Any]]:
     except FileNotFoundError:
         return []
 
-
 def save_orders():
     """Salva ordini in JSON"""
     with open('orders.json', 'w', encoding='utf-8') as f:
         json.dump(orders, f, indent=2, ensure_ascii=False)
 
-
-# Carica ordini all’avvio
+# Carica ordini all'avvio
 orders = load_orders()
-
 
 # Mappa prodotti per riconoscimento intelligente
 PRODUCT_KEYWORDS = {
@@ -58,7 +54,6 @@ PRODUCT_KEYWORDS = {
     'backwoods_pack': ['backwoods confezione', 'backwoods pacchetti'],
     'blunt': ['blunt wraps', 'blunt', 'wraps']
 }
-
 
 def parse_flexible_order(text: str) -> Dict[str, Any]:
     """Rileva ordine da QUALUNQUE formato di messaggio"""
@@ -81,7 +76,7 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
     if username_match:
         parsed['cliente'] = username_match.group(0)
 
-    # 2. Prezzi (DEFINISCE prezzo se trovato)
+    # 2. Prezzi
     price_match = re.search(r'(\d+(?:\.\d{1,2})?)\s*€?', text_lower)
     if price_match:
         parsed['prezzo'] = f"{price_match.group(1)}€"
@@ -156,7 +151,7 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
 
     parsed['note'] = parsed['note'].strip(', ')
     return parsed
-    
+
 def create_order_row(order: Dict[str, Any]) -> str:
     if not order['products']:
         return f"{order['cliente']} | --vuoto-- | {order['prezzo']}€"
@@ -177,7 +172,6 @@ def create_order_row(order: Dict[str, Any]) -> str:
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando /start: mostra ordini aperti"""
     await show_orders_page(update, context, 0)
-
 
 async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page: int = 0):
     open_orders = [o for o in orders if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))]
@@ -322,7 +316,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             save_orders()
         await show_orders_page(query, context, 0)
 
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Gestisce messaggi: parsing automatico, editing, nuovo ordine"""
     text = update.message.text
@@ -385,7 +378,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop('auto_confirm', None)
         context.user_data.pop('auto_parsed', None)
         return
-        
+
 def main():
     application = Application.builder().token(BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
