@@ -76,25 +76,39 @@ def save_orders(data: Dict[str, dict]) -> None:
 
 
 def parse_order_message(text: str) -> Optional[Dict[str, str]]:
-    if "INFORMAZIONI ORDINE" not in text.upper():
-        return None
-
     parsed: Dict[str, str] = {}
     label_patterns = [
-        (label, re.compile(rf"^\s*•?\s*{re.escape(label)}\s*:?\s*(.+)$", re.IGNORECASE))
+        (
+            label,
+            LABEL_MAP.get(normalize_label(label)),
+            re.compile(rf"^\s*•?\s*{re.escape(label)}\s*:?\s*(.*)$", re.IGNORECASE),
+        )
         for label in sorted(LABEL_MAP.keys(), key=len, reverse=True)
     ]
-    for raw_line in text.splitlines():
+    lines = text.splitlines()
+    for index, raw_line in enumerate(lines):
         line = raw_line.strip()
         if not line or "informazioni" in line.lower():
             continue
-        for label, pattern in label_patterns:
+        if line.startswith("@") and "username_telegram" not in parsed:
+            parsed["username_telegram"] = line
+            continue
+        for label, field_key, pattern in label_patterns:
+            if not field_key:
+                continue
             match = pattern.match(line)
             if not match:
                 continue
-            field_key = LABEL_MAP.get(normalize_label(label))
-            if field_key:
-                parsed[field_key] = match.group(1).strip()
+            value = match.group(1).strip()
+            if not value:
+                for next_line in lines[index + 1 :]:
+                    next_value = next_line.strip()
+                    if not next_value or "informazioni" in next_value.lower():
+                        continue
+                    value = next_value
+                    break
+            if value:
+                parsed[field_key] = value
             break
 
     if not parsed:
@@ -136,7 +150,15 @@ async def list_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     if not orders:
         await update.message.reply_text("Nessun ordine salvato al momento.")
         return
-    lines = [f"{order['id']}. {order.get('prodotti', '-')}" for order in orders]
+    lines = []
+    for order in orders:
+        username = order.get("username_telegram") or order.get("sender") or "-"
+        if username != "-" and not username.startswith("@"):
+            username = f"@{username}"
+        prodotti = order.get("prodotti", "-")
+        quantita = order.get("quantita", "-")
+        product_summary = prodotti if quantita == "-" else f"{prodotti} ({quantita})"
+        lines.append(f"{order['id']}. {username} | {product_summary}")
     await update.message.reply_text("\n".join(lines))
 
 
