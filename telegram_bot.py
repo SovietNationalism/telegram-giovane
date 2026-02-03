@@ -17,67 +17,75 @@ orders = []
 
 def load_orders():
     try:
-        with open('orders.json', 'r') as f:
+        with open('orders.json', 'r', encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
         return []
 
 def save_orders():
-    with open('orders.json', 'w') as f:
-        json.dump(orders, f, indent=2)
+    with open('orders.json', 'w', encoding='utf-8') as f:
+        json.dump(orders, f, indent=2, ensure_ascii=False)
 
 orders = load_orders()
 
 def create_order_row(order):
-    products = ', '.join([f"{p['qty']} {p['product']}" for p in order['products']])
+    if not order['products']:
+        return f"{order['cliente']} | --vuoto-- | {order['prezzo']}€"
+    
+    products_str = ', '.join([f"{p['qty']} {p['product']}" for p in order['products'][:3]])
+    if len(order['products']) > 3:
+        products_str += f" +{len(order['products'])-3}"
+    
     status = "✅✅" if order.get('pacco_pronto') and order.get('pacco_consegnato') else "✅❌" if order.get('pacco_pronto') else "❌❌"
-    return f"{order['cliente']} | {products[:30]}... | {order['prezzo']}€ | {status}"
+    return f"{order['cliente']} | {products_str} | {order['prezzo']}€ | {status}"
 
 def parse_flexible_order(text):
     text_lower = text.lower()
     
     # Username
-    username_match = re.search(r'@[\w]+', text)
+    username_match = re.search(r'@[\\w]+', text)
     username = username_match.group(0) if username_match else "unknown"
     
     # Price
-    price_match = re.search(r'(\d+(?:\.\d+)?)\s*€?', text_lower)
+    price_match = re.search(r'(\\d+(?:\\.\\d+)?)\\s*€?', text_lower)
     price = price_match.group(1) + "€" if price_match else "??€"
     
     # Products grams
-    gram_matches = re.findall(r'(\d+(?:\.\d+)?)\s*(g|grammi?|gr|ml)', text_lower)
+    gram_matches = re.findall(r'(\\d+(?:\\.\\d+)?)\\s*(g|grammi?|gr|ml)', text_lower)
     products = []
     for qty, unit in gram_matches:
-        product_match = re.search(r'(filtrato|hash|dry|cali|og|lsd|oxy|filtered|drysift|spain)', text_lower)
-        product_name = product_match.group(1) if product_match else 'unknown'
+        # Miglior matching prodotti
+        product_hint = re.search(r'(filtrato|hash|dry|cali|og|lsd|oxy|jungle|elements|backwoods_pack|blunt)', text_lower)
+        product_name = product_hint.group(1) if product_hint else 'unknown'
         products.append({'qty': f"{qty}{unit}", 'product': product_name})
     
-    # Specific items
+    # Specific items (IL TUO CODICE FUNZIONANTE)
     specifics = {
-        'dabwoods': re.findall(r'(\d*)\s*dabwoods?', text_lower),
-        'packwoods': re.findall(r'(\d*)\s*packwoods?', text_lower),
-        'backwoods': re.findall(r'(\d*)\s*backwoods?', text_lower),
-        'lean': re.findall(r'(\d*)\s*lean', text_lower),
-        'lsd': re.findall(r'(\d*)\s*lsd', text_lower),
-        'oxy': re.findall(r'(\d*)\s*oxy', text_lower),
-        'vape': re.findall(r'(\d*)\s*vape', text_lower),
-        'pen': re.findall(r'(\d*)\s*pen', text_lower)
+        'dabwoods': re.findall(r'(\\d*)\\s*dabwoods?', text_lower),
+        'packwoods': re.findall(r'(\\d*)\\s*packwoods?', text_lower),
+        'backwoods': re.findall(r'(\\d*)\\s*backwoods?', text_lower),
+        'lean': re.findall(r'(\\d*)\\s*lean', text_lower),
+        'lsd': re.findall(r'(\\d*)\\s*lsd', text_lower),
+        'oxy': re.findall(r'(\\d*)\\s*oxy', text_lower),
+        'vape': re.findall(r'(\\d*)\\s*vape', text_lower),
+        'pen': re.findall(r'(\\d*)\\s*pen', text_lower)
     }
     for item, qtys in specifics.items():
         for qty in qtys:
-            products.append({'qty': qty or '1', 'product': item})
+            if qty:  # Solo se trova quantità
+                products.append({'qty': qty, 'product': item})
     
-    # Name, phone, email, address
-    name_match = re.search(r'([A-Z][a-z]+(?:\s[A-Z][a-z]+)+)', text)
+    # Name, phone, email, address (IL TUO CODICE FUNZIONANTE)
+    name_match = re.search(r'([A-Z][a-z]+(?:\\s[A-Z][a-z]+)+)', text)
     name = name_match.group(1) if name_match else ""
     
-    phone_match = re.search(r'\d{3}\s?\d{3,7}\d{4}|\+39\d{9,10}', text)
+    phone_match = re.search(r'\\d{3}\\s?\\d{3,7}\\d{4}|\\+39\\d{9,10}', text)
     phone = phone_match.group(0) if phone_match else ""
     
-    email_match = re.search(r'[\w\.-]+@[\w\.-]+', text)
+    email_match = re.search(r'[\\w\\.-]+@[\\w\\.-]+', text)
     email = email_match.group(0) if email_match else ""
     
-    address_match = re.search(r'(via|viale|corso|regione|locker|inpost).*?\d+', text, re.IGNORECASE)
+    address_match = re.search(r'(via|viale|corso|regione|locker|inpost).*?\\d+', text, re.IGNORECASE)
     address = address_match.group(0)[:80] if address_match else ""
     
     note = f"{name}, {phone}, {email}, {address}".strip(", ")
@@ -98,57 +106,91 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page=0):
     open_orders = [o for o in orders if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))]
     
+    text = f"📋 **ORDINI APERTI** ({len(open_orders)})\n\n"
+    keyboard = []
+    
     if not open_orders:
-        text = "✅ **Nessun ordine aperto!**"
-        keyboard = [[InlineKeyboardButton("➕ Nuovo", callback_data="add")]]
+        text += "✅ Nessun ordine aperto!"
+        keyboard = [[InlineKeyboardButton("➕ Nuovo ordine", callback_data="add")]]
     else:
-        per_page = 8
+        per_page = 6
         total_pages = (len(open_orders) + per_page - 1) // per_page
         start_idx = page * per_page
-        page_orders = open_orders[start_idx:start_idx + per_page]
+        end_idx = min(start_idx + per_page, len(open_orders))
         
-        text = f"📋 **ORDINI APERTI** ({len(open_orders)}) - Pg {page+1}/{total_pages}\n\n"
-        for i, order in enumerate(page_orders, start_idx+1):
-            text += f"{i}. {create_order_row(order)}\n"
+        for i in range(start_idx, end_idx):
+            order = open_orders[i]
+            text += f"{i+1}. {create_order_row(order)}\n"
+            keyboard.append([
+                InlineKeyboardButton("✏️ Modifica", callback_data=f"edit_{i}"),
+                InlineKeyboardButton("✅ Pronto", callback_data=f"toggle_{i}")
+            ])
         
-        keyboard = []
+        # Paginazione
+        nav_row = []
         if page > 0:
-            keyboard.append(InlineKeyboardButton("⬅️", callback_data=f"p_{page-1}"))
-        if page < total_pages - 1:
-            keyboard.append(InlineKeyboardButton("➡️", callback_data=f"p_{page+1}"))
+            nav_row.append(InlineKeyboardButton("⬅️", callback_data=f"p_{page-1}"))
+        if end_idx < len(open_orders):
+            nav_row.append(InlineKeyboardButton("➡️", callback_data=f"p_{page+1}"))
+        if nav_row:
+            keyboard.append(nav_row)
+        
         keyboard.extend([
             [InlineKeyboardButton("➕ Nuovo", callback_data="add")],
             [InlineKeyboardButton("📊 Stats", callback_data="stats")]
         ])
     
     reply_markup = InlineKeyboardMarkup(keyboard)
-    if update.callback_query:
-        await update.callback_query.edit_message_text(text, reply_markup=reply_markup, parse_mode='Markdown')
-    else:
-        await update.message.reply_text(text, reply_markup=reply_markup, parse_mode='Markdown')
+    try:
+        if update.callback_query:
+            await update.callback_query.edit_message_text(text, reply_markup=reply_markup, parse_mode='Markdown')
+        else:
+            await update.message.reply_text(text, reply_markup=reply_markup, parse_mode='Markdown')
+    except Exception as e:
+        logger.error(f"Errore pagina: {e}")
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
-    if query.data.startswith("p_"):
-        page = int(query.data[2:])
+    data = query.data
+
+    if data.startswith("p_"):
+        page = int(data[2:])
         await show_orders_page(query, context, page)
-    elif query.data == "add":
+    elif data == "add":
         await query.edit_message_text(
             "📥 **Invia il messaggio dell'ordine**\n\n"
-            "Rilevo automaticamente @username, prezzi €, grammi, nomi, indirizzi!",
-            parse_mode='Markdown'
+            "🧠 Parsing automatico rileva:\n"
+            "• `@username`\n"
+            "• Prezzi €\n"
+            "• Grammi (5g filtrato)\n"
+            "• Dabwoods/lean/backwoods\n"
+            "• Nome/telefono/indirizzo",
+            parse_mode='Markdown',
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Lista", callback_data="list")]])
         )
         context.user_data['waiting_order'] = True
-    elif query.data == "stats":
+    elif data == "stats":
         total = len(orders)
-        open_o = len([o for o in orders if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))])
-        revenue = sum(float(o['prezzo'].replace('€','')) for o in orders)
-        text = f"📊 **Stats**\n\n• Totali: {total}\n• Aperti: {open_o}\n• Incasso: {revenue:.0f}€"
+        open_count = len([o for o in orders if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))])
+        revenue = sum(float(o['prezzo'].replace('€','').replace(',','.')) for o in orders if o['prezzo'] != '??€')
+        text = f"""📊 **STATISTICHE**
+
+• Ordini totali: {total}
+• Aperti: {open_count}
+• Incasso: {revenue:,.0f}€"""
         await query.edit_message_text(text, parse_mode='Markdown')
-    elif query.data.startswith("toggle_"):
-        idx = int(query.data.split("_")[1])
+    elif data == "list":
+        await show_orders_page(query, context, 0)
+    elif data.startswith("edit_"):
+        idx = int(data.split("_")[1])
+        if 0 <= idx < len(orders):
+            order = orders[idx]
+            text = f"✏️ **Modifica {order['cliente']}**\n\n{create_order_row(order)}\n\nInvia nuovo testo:"
+            await query.edit_message_text(text, parse_mode='Markdown')
+            context.user_data['editing_idx'] = idx
+    elif data.startswith("toggle_"):
+        idx = int(data.split("_")[1])
         if 0 <= idx < len(orders):
             order = orders[idx]
             if not order.get('pacco_pronto'):
@@ -161,35 +203,35 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     
+    # Editing
+    if 'editing_idx' in context.user_data:
+        idx = context.user_data['editing_idx']
+        parsed = parse_flexible_order(text)
+        orders[idx] = parsed
+        save_orders()
+        await update.message.reply_text(f"✅ Modificato!\n{create_order_row(parsed)}")
+        context.user_data.pop('editing_idx')
+        return
+    
+    # New order
     if context.user_data.get('waiting_order'):
         parsed = parse_flexible_order(text)
         orders.append(parsed)
         save_orders()
-        
+        preview = create_order_row(parsed)
         await update.message.reply_text(
-            f"✅ **Aggiunto!**\n\n{create_order_row(parsed)}\n"
-            f"**Note:** {parsed['note']}\n\n/start per lista",
+            f"✅ **Aggiunto!**\n\n{preview}\n\nNote: {parsed['note']}\n\n/start",
             parse_mode='Markdown'
         )
         context.user_data['waiting_order'] = False
         return
-    
-    # Auto-detect order-like messages
-    text_lower = text.lower()
-    if any(x in text_lower for x in ['€', '@']) and any(x in text_lower for x in ['g', 'dabwood', 'lean', 'filtr']):
-        parsed = parse_flexible_order(text)
-        await update.message.reply_text(
-            f"🤖 **Rilevato ordine:**\n{create_order_row(parsed)}\n\n"
-            f"`SI` per aggiungere, `NO` per ignorare",
-            parse_mode='Markdown'
-        )
-        context.user_data['pending_order'] = parsed
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    print("🚀 Bot avviato!")
     app.run_polling()
 
 if __name__ == '__main__':
