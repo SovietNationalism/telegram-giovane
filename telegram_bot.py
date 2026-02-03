@@ -73,11 +73,11 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
         'pacco_pronto': False,
         'pacco_consegnato': False,
         'data': datetime.now().isoformat(),
-        'raw_text': original_text  # Per modifica dopo
+        'raw_text': original_text
     }
 
     # 1. Username @username
-    username_match = re.search(r'@[\w\d_]{3,32}', text)
+    username_match = re.search(r'@[\w\d_]{3,32}', text)  # NO \ 
     if username_match:
         parsed['cliente'] = username_match.group(0)
 
@@ -93,18 +93,17 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
             parsed['prezzo'] = f"{price_match.group(1)}€"
             break
 
-    # 3. Grammi (5g filtrato, 20g OG, 30g dry, ecc.)
+    # 3. Grammi (5g filtrato, 20g OG, ecc.)
     gram_patterns = [
         r'(\d+(?:\.\d+)?)\s*(?:g|gr|gramm[io])\s*(?:di\s+)?([a-z\s]+?)(?=\s*(?:€|\d+g|$))',
-        r'(\d+(?:\.\d+)?)\s*[ggr]?\s*([a-z\s]+?)(?=\s*(?:€|\d+g|$))',
-        r'(\d+(?:\.\d+)?)\s*(?:grammi?|gr?\.)?\s*([a-z]+)'
+        r'(\d+(?:\.\d+)?)[ggr]?\s*([a-z\s]+?)(?=\s*(?:€|\d+g|$))',
+        r'(\d+(?:\.\d+)?)(?:grammi?|gr?\.)?\s*([a-z]+)'
     ]
     for pattern in gram_patterns:
         matches = re.finditer(pattern, text_lower)
         for match in matches:
             qty = match.group(1)
             product_hint = match.group(2).strip()
-            # Associa a prodotto noto
             product_name = 'unknown'
             for known, keywords in PRODUCT_KEYWORDS.items():
                 if any(kw in product_hint for kw in keywords):
@@ -116,7 +115,7 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
                 'raw': product_hint
             })
 
-    # 4. Prodotti specifici (dabwoods, lean, backwoods, ecc.)
+    # 4. Prodotti specifici (dabwoods, lean, ecc.)
     for product_name, keywords in PRODUCT_KEYWORDS.items():
         for keyword in keywords:
             if keyword in text_lower:
@@ -127,15 +126,13 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
                     'product': product_name,
                     'raw': keyword
                 })
-                break  # 1 volta per prodotto
+                break
 
-    # 5. Info spedizione (nome, tel, email, indirizzo, pagamento)
-    # Nome: 2-3 parole iniziali maiuscole
+    # 5. Nome, telefono, email, indirizzo, pagamento
     name_candidates = re.findall(r'\b[A-Z][a-z]+(?:\s[A-Z][a-z]+){1,2}\b', text)
     if name_candidates:
         parsed['note'] += f"Nome: {name_candidates[0]} "
 
-    # Telefono italiano (3xx senza prefisso o con +39/0039)
     phone_patterns = [
         r'(?:\+39|0039)?\s*3\d{2}\s?\d{6,7}',
         r'\d{10,11}',
@@ -147,12 +144,10 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
             parsed['note'] += f"Tel: {phone_match.group(0)} "
             break
 
-    # Email
     email_match = re.search(r'[\w\.-]+@[\w\.-]+\.[a-z]{2,}', text)
     if email_match:
         parsed['note'] += f"Email: {email_match.group(0)} "
 
-    # Indirizzo (via, viale, corso, locker, inpost, tabacchino)
     address_keywords = ['via ', 'viale ', 'corso ', 'regione ', 'locker ', 'inpost ', 'tabacchino ']
     for kw in address_keywords:
         if kw in text_lower:
@@ -161,19 +156,15 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
             parsed['note'] += f"Indirizzo: {addr_text} "
             break
 
-    # Metodo di pagamento
     payments = ['revolut', 'bonifico', 'paypal', 'bitnovo', 'carta']
     for p in payments:
         if p in text_lower:
             parsed['note'] += f"Pagamento: {p.title()} "
-            break
 
     parsed['note'] = parsed['note'].strip(', ')
     return parsed
 
-
 def create_order_row(order: Dict[str, Any]) -> str:
-    """Riga compatta ordine per la lista"""
     if not order['products']:
         return f"{order['cliente']} | --vuoto-- | {order['prezzo']}€"
 
@@ -181,11 +172,14 @@ def create_order_row(order: Dict[str, Any]) -> str:
     if len(order['products']) > 3:
         products_str += f" +{len(order['products'])-3}"
 
-    status = "✅✅" if order.get('pacco_pronto') and order.get('pacco_consegnato') \
-        else "✅❌" if order.get('pacco_pronto') \
-        else "❌❌"
-    return f"{order['cliente']} | {products_str} | {order['prezzo']}€ | {status}"
+    if order.get('pacco_pronto') and order.get('pacco_consegnato'):
+        status = "✅✅"
+    elif order.get('pacco_pronto'):
+        status = "✅❌"
+    else:
+        status = "❌❌"
 
+    return f"{order['cliente']} | {products_str} | {order['prezzo']}€ | {status}"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando /start: mostra ordini aperti"""
@@ -391,4 +385,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='Markdown'
         )
         context.user_data['auto_confirm'] = True
+        
+def main():
+    application = Application.builder().token(BOT_TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(button_callback))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    print("🚀 Bot avviato!")
+    application.run_polling()
+
+if __name__ == '__main__':
+    main()
+
        
