@@ -156,7 +156,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_orders_page(update, context, 0)
 
 async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page=0):
-    open_orders = [(idx, o) for idx, o in enumerate(orders)]
+    open_orders = [
+        (idx, o) for idx, o in enumerate(orders)
+        if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))
+    ]
     
     text = f"📋 **ORDINI APERTI** ({len(open_orders)})\n\n"
     keyboard = []
@@ -263,21 +266,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     text_lower = text.lower()  # ✅ ADD THIS LINE
-
-    pending_order = context.user_data.get('pending_order')
-    if pending_order and text_lower.strip() in {"si", "sì", "yes"}:
-        orders.append(pending_order)
-        save_orders()
-        await update.message.reply_text(
-            f"✅ **Aggiunto!**\n\n{create_order_row(pending_order)}\n\nNote: {pending_order['note']}\n\n/start",
-            parse_mode='Markdown'
-        )
-        context.user_data.pop('pending_order', None)
-        return
-    if pending_order and text_lower.strip() in {"no", "n"}:
-        context.user_data.pop('pending_order', None)
-        await update.message.reply_text("❌ Ordine ignorato.\n\n/start", parse_mode='Markdown')
-        return
 
     if "\n" in text and ("\t" in text or text_lower.startswith("cliente")):
         bulk_orders = parse_tabular_orders(text)
