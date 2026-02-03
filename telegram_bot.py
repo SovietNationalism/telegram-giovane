@@ -81,12 +81,10 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
     if username_match:
         parsed['cliente'] = username_match.group(0)
 
-    # 2. Prezzi
-    price_patterns = [
-        r'(\d+(?:\.\d{1,2})?)\s*€?',
-        r'(\d+(?:\.\d{1,2})?)\s*(?:euro|euri)',
-        r'totale\s*:?\s*(\d+(?:\.\d{1,2})?)'
-    ]
+    # 2. Prezzi (DEFINISCE prezzo se trovato)
+    price_match = re.search(r'(\d+(?:\.\d{1,2})?)\s*€?', text_lower)
+    if price_match:
+        parsed['prezzo'] = f"{price_match.group(1)}€"
 
     # 3. Grammi (5g filtrato, 20g OG, ecc.)
     gram_patterns = [
@@ -140,7 +138,25 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
             break
 
     email_match = re.search(r'[\w\.-]+@[\w\.-]+\.[a-z]{2,}', text)
+    if email_match:
+        parsed['note'] += f"Email: {email_match.group(0)} "
 
+    address_keywords = ['via ', 'viale ', 'corso ', 'regione ', 'locker ', 'inpost ', 'tabacchino ']
+    for kw in address_keywords:
+        if kw in text_lower:
+            addr_start = text_lower.find(kw)
+            addr_text = text[addr_start:addr_start+100].strip()
+            parsed['note'] += f"Indirizzo: {addr_text} "
+            break
+
+    payments = ['revolut', 'bonifico', 'paypal', 'bitnovo', 'carta']
+    for p in payments:
+        if p in text_lower:
+            parsed['note'] += f"Pagamento: {p.title()} "
+
+    parsed['note'] = parsed['note'].strip(', ')
+    return parsed
+    
 def create_order_row(order: Dict[str, Any]) -> str:
     if not order['products']:
         return f"{order['cliente']} | --vuoto-- | {order['prezzo']}€"
@@ -310,6 +326,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Gestisce messaggi: parsing automatico, editing, nuovo ordine"""
     text = update.message.text
+    text_lower = text.lower()
 
     # 1. Modifica ordine in corso
     if context.user_data.get('editing_order') is not None:
@@ -325,7 +342,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop('editing_order', None)
         return
 
-    # 2. Nuovo ordine (da /start -> “➕ Nuovo ordine”)
+    # 2. Nuovo ordine (da /start -> "➕ Nuovo ordine")
     if context.user_data.get('waiting_order'):
         parsed = parse_flexible_order(text)
         orders.append(parsed)
@@ -342,7 +359,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # 3. Auto‑detect su messaggi che sembrano ordini
-    text_lower = text.lower()
     if ('€' in text_lower or 'euro' in text_lower) and any(
         kw in text_lower for kw in ['g', 'dabwood', 'lean', 'filtr', '@', 'pag']
     ):
@@ -356,11 +372,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='Markdown'
         )
         context.user_data['auto_confirm'] = True
-        context.user_data['auto_parsed'] = parsed  # <-- QUESTA RIGA MANCAVA
+        context.user_data['auto_parsed'] = parsed
+        return
 
-    # Auto-confirm SI/NO
+    # 4. Auto-confirm SI/NO
     if context.user_data.get('auto_confirm'):
-        parsed = context.user_data['auto_parsed']
+        if 'si' in text_lower:
+            parsed = context.user_data['auto_parsed']
+            orders.append(parsed)
+            save_orders()
+            await update.message.reply_text(f"✅ Aggiunto!\n{create_order_row(parsed)}")
+        context.user_data.pop('auto_confirm', None)
+        context.user_data.pop('auto_parsed', None)
+        return
         
 def main():
     application = Application.builder().token(BOT_TOKEN).build()
