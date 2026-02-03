@@ -41,23 +41,26 @@ def create_order_row(order):
 
 def parse_flexible_order(text):
     text_lower = text.lower()
+    products = []  # ✅ ADD THIS LINE
     
     # Username
     username_match = re.search(r'@[\\w]+', text)
     username = username_match.group(0) if username_match else "unknown"
     
     # Price - AGGIORNATO
-    price_match = re.search(r'(\d{1,4}(?:\.\d+)?)\s*€?', text_lower)
+    price_match = re.search(r'(\\d{1,4}(?:\\.\\d+)?)\\s*€?', text_lower)
     price = price_match.group(1) + "€" if price_match else "??€"
     
     # Products grams MIGLIORATO - trova TUTTI i grammi
-    gram_matches = re.findall(r'(\d+(?:\.\d+)?)\s*(g|gr|grammi?|frozen|hash)', text_lower, re.IGNORECASE)
+    gram_matches = re.findall(r'(\\d+(?:\\.\\d+)?)\\s*(g|gr|grammi?|frozen|hash|dry)', text_lower, re.IGNORECASE)
     for qty, product_hint in gram_matches:
         product_name = product_hint.lower()
         if 'frozen' in product_name:
             product_name = 'frozen'
         elif 'hash' in product_name:
             product_name = 'hash'
+        elif 'dry' in product_name:  # ✅ Added for "Dry"
+            product_name = 'dry'
         products.append({'qty': f"{qty}g", 'product': product_name})
 
     # Numeri grandi senza unità (190 hash → 190g hash)
@@ -216,6 +219,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
+    text_lower = text.lower()  # ✅ ADD THIS LINE
     
     # Editing
     if context.user_data.get('editing_idx') is not None:
@@ -241,7 +245,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Auto-detect order-like messages - PIÙ LARGHE
-    order_keywords = ['g', 'gr', 'ordinare', 'weed', 'ordine', 'grammi', 'hash', 'frozen', 'dabwood', 'lean', 'filtr', 'og', 'cali']
+    order_keywords = ['g', 'gr', 'ordinare', 'weed', 'ordine', 'grammi', 'hash', 'frozen', 'dabwood', 'lean', 'filtr', 'og', 'cali', 'dry']  # ✅ Added 'dry'
     if '€' in text_lower and any(kw in text_lower for kw in order_keywords):
         parsed = parse_flexible_order(text)
         preview = create_order_row(parsed)
