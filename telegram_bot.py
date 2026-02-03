@@ -140,24 +140,6 @@ def parse_flexible_order(text: str) -> Dict[str, Any]:
             break
 
     email_match = re.search(r'[\w\.-]+@[\w\.-]+\.[a-z]{2,}', text)
-    if email_match:
-        parsed['note'] += f"Email: {email_match.group(0)} "
-
-    address_keywords = ['via ', 'viale ', 'corso ', 'regione ', 'locker ', 'inpost ', 'tabacchino ']
-    for kw in address_keywords:
-        if kw in text_lower:
-            addr_start = text_lower.find(kw)
-            addr_text = text[addr_start:addr_start+100].strip()
-            parsed['note'] += f"Indirizzo: {addr_text} "
-            break
-
-    payments = ['revolut', 'bonifico', 'paypal', 'bitnovo', 'carta']
-    for p in payments:
-        if p in text_lower:
-            parsed['note'] += f"Pagamento: {p.title()} "
-
-    parsed['note'] = parsed['note'].strip(', ')
-    return parsed
 
 def create_order_row(order: Dict[str, Any]) -> str:
     if not order['products']:
@@ -374,18 +356,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='Markdown'
         )
         context.user_data['auto_confirm'] = True
+        context.user_data['auto_parsed'] = parsed  # <-- QUESTA RIGA MANCAVA
 
     # Auto-confirm SI/NO
     if context.user_data.get('auto_confirm'):
         parsed = context.user_data['auto_parsed']
-        if 'si' in text_lower:
-            orders.append(parsed)
-            save_orders()
-            await update.message.reply_text(f"✅ Aggiunto!\n{create_order_row(parsed)}")
-        context.user_data.pop('auto_confirm', None)
-        context.user_data.pop('auto_parsed', None)
-        return
-
         
 def main():
     application = Application.builder().token(BOT_TOKEN).build()
