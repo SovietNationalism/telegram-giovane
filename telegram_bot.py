@@ -152,62 +152,14 @@ def parse_tabular_orders(text):
             orders_parsed.append(parsed)
     return orders_parsed
 
-def parse_structured_order_form(text):
-    if "informazioni ordine" not in text.lower():
-        return None
-
-    username_match = re.search(r'username\\s*@?([a-zA-Z0-9_]+)', text, re.IGNORECASE)
-    username = f"@{username_match.group(1)}" if username_match else "unknown"
-
-    product_match = re.search(r'prodotto/i?\\s+(.+)', text, re.IGNORECASE)
-    product = product_match.group(1).strip() if product_match else ""
-
-    qty_match = re.search(r'quantit[aà]\\s+(.+)', text, re.IGNORECASE)
-    qty = qty_match.group(1).strip() if qty_match else ""
-
-    payment_match = re.search(r'metodo di pagamento scelto\\s+(.+)', text, re.IGNORECASE)
-    payment = payment_match.group(1).strip() if payment_match else ""
-
-    note_lines = []
-    name_match = re.search(r'nome e cognome\\s+(.+)', text, re.IGNORECASE)
-    if name_match:
-        note_lines.append(name_match.group(1).strip())
-
-    contact_match = re.search(r'num di tel\\s*/?\\s*email\\s+(.+)', text, re.IGNORECASE)
-    if contact_match:
-        note_lines.append(contact_match.group(1).strip())
-
-    address_match = re.search(r'indirizzo o punto di ritiro\\s+(.+)', text, re.IGNORECASE)
-    if address_match:
-        note_lines.append(address_match.group(1).strip())
-
-    extra_match = re.search(r'eventuali note o richieste speciali\\s+(.+)', text, re.IGNORECASE)
-    if extra_match:
-        note_lines.append(extra_match.group(1).strip())
-
-    if payment:
-        note_lines.append(payment)
-
-    note = ", ".join([line for line in note_lines if line])
-    products = []
-    if product or qty:
-        products.append({'qty': qty if qty else "--", 'product': product.lower() if product else "--"})
-
-    return {
-        'cliente': username,
-        'products': products,
-        'prezzo': "??€",
-        'note': note,
-        'pacco_pronto': False,
-        'pacco_consegnato': False,
-        'data': datetime.now().isoformat()
-    }
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_orders_page(update, context, 0)
 
 async def show_orders_page(update: Update, context: ContextTypes.DEFAULT_TYPE, page=0):
-    open_orders = [(idx, o) for idx, o in enumerate(orders)]
+    open_orders = [
+        (idx, o) for idx, o in enumerate(orders)
+        if not (o.get('pacco_pronto') and o.get('pacco_consegnato'))
+    ]
     
     text = f"📋 **ORDINI APERTI** ({len(open_orders)})\n\n"
     keyboard = []
@@ -315,21 +267,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     text_lower = text.lower()  # ✅ ADD THIS LINE
 
-    pending_order = context.user_data.get('pending_order')
-    if pending_order and text_lower.strip() in {"si", "sì", "yes"}:
-        orders.append(pending_order)
-        save_orders()
-        await update.message.reply_text(
-            f"✅ **Aggiunto!**\n\n{create_order_row(pending_order)}\n\nNote: {pending_order['note']}\n\n/start",
-            parse_mode='Markdown'
-        )
-        context.user_data.pop('pending_order', None)
-        return
-    if pending_order and text_lower.strip() in {"no", "n"}:
-        context.user_data.pop('pending_order', None)
-        await update.message.reply_text("❌ Ordine ignorato.\n\n/start", parse_mode='Markdown')
-        return
-
     if "\n" in text and ("\t" in text or text_lower.startswith("cliente")):
         bulk_orders = parse_tabular_orders(text)
         if bulk_orders:
@@ -340,16 +277,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode='Markdown'
             )
             return
-
-    structured_order = parse_structured_order_form(text)
-    if structured_order:
-        orders.append(structured_order)
-        save_orders()
-        await update.message.reply_text(
-            f"✅ **Aggiunto!**\n\n{create_order_row(structured_order)}\n\nNote: {structured_order['note']}\n\n/start",
-            parse_mode='Markdown'
-        )
-        return
     
     # Editing
     if context.user_data.get('editing_idx') is not None:
