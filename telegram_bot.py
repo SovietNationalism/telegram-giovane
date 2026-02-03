@@ -227,8 +227,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data.pop('editing_idx')
         return
 
-    # Editing - REGENERA COMPLETO DAL NUOVO TESTO
-    if 'editing_idx' in context.user_data:
+    # Editing - SOLO se in modalità editing
+    if context.user_data.get('editing_idx') is not None:
         idx = context.user_data['editing_idx']
         new_parsed = parse_flexible_order(text)  # ← RILEGGE TUTTO
         orders[idx] = new_parsed
