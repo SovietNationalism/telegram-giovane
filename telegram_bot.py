@@ -77,6 +77,32 @@ def save_orders(data: Dict[str, dict]) -> None:
 
 def parse_order_message(text: str) -> Optional[Dict[str, str]]:
     parsed: Dict[str, str] = {}
+    in_shipping_section = False
+    email_regex = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
+    phone_regex = re.compile(r"\+?\d[\d\s\-().]{5,}\d")
+    address_keywords = (
+        "via",
+        "viale",
+        "corso",
+        "piazza",
+        "vicolo",
+        "strada",
+        "piazzale",
+        "punto di ritiro",
+        "ritiro",
+        "locker",
+        "inpost",
+    )
+
+    def clean_unlabeled(value: str) -> str:
+        return value.lstrip("•").strip()
+
+    def looks_like_address(value: str) -> bool:
+        lowered = value.lower()
+        if any(keyword in lowered for keyword in address_keywords):
+            return True
+        return bool(re.search(r"\d", value))
+
     label_patterns = [
         (
             label,
@@ -88,7 +114,12 @@ def parse_order_message(text: str) -> Optional[Dict[str, str]]:
     lines = text.splitlines()
     for index, raw_line in enumerate(lines):
         line = raw_line.strip()
-        if not line or "informazioni" in line.lower():
+        if not line:
+            continue
+        if "informazioni spedizione" in line.lower():
+            in_shipping_section = True
+            continue
+        if "informazioni" in line.lower():
             continue
         if line.startswith("@") and "username_telegram" not in parsed:
             parsed["username_telegram"] = line
@@ -110,6 +141,22 @@ def parse_order_message(text: str) -> Optional[Dict[str, str]]:
             if value:
                 parsed[field_key] = value
             break
+        else:
+            if not in_shipping_section:
+                continue
+            unlabeled_value = clean_unlabeled(line)
+            if not unlabeled_value:
+                continue
+            if "contatto" not in parsed and (
+                email_regex.search(unlabeled_value) or phone_regex.search(unlabeled_value)
+            ):
+                parsed["contatto"] = unlabeled_value
+                continue
+            if "indirizzo" not in parsed and looks_like_address(unlabeled_value):
+                parsed["indirizzo"] = unlabeled_value
+                continue
+            if "nome_cognome" not in parsed:
+                parsed["nome_cognome"] = unlabeled_value
 
     if not parsed:
         return None
