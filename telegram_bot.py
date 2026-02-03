@@ -254,7 +254,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Auto-detect order-like messages - PIÙ LARGHE
-        order_keywords = ['g', 'gr', 'grammi', 'hash', 'frozen', 'dabwood', 'lean', 'filtr', 'og', 'cali']
+        order_keywords = ['g', 'gr', 'ordinare', 'weed', 'ordine', 'grammi', 'hash', 'frozen', 'dabwood', 'lean', 'filtr', 'og', 'cali']
         if '€' in text_lower and any(kw in text_lower for kw in order_keywords):
             parsed = parse_flexible_order(text)
             preview = create_order_row(parsed)
