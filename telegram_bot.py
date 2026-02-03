@@ -79,7 +79,6 @@ def parse_order_message(text: str) -> Optional[Dict[str, str]]:
     if "INFORMAZIONI ORDINE" not in text.upper():
         return None
 
-    label_options = sorted(LABEL_MAP.keys(), key=len, reverse=True)
     parsed: Dict[str, str] = {}
     for raw_line in text.splitlines():
         line = raw_line.strip()
@@ -90,23 +89,14 @@ def parse_order_message(text: str) -> Optional[Dict[str, str]]:
         if not line:
             continue
 
-        normalized_line = normalize_label(line)
-        matched = False
-        for label in label_options:
-            label_with_space = f"{label} "
-            label_with_colon = f"{label}:"
-            if normalized_line.startswith(label_with_colon):
-                value = line[len(label_with_colon) :].strip()
-            elif normalized_line.startswith(label_with_space):
-                value = line[len(label_with_space) :].strip()
-            else:
-                continue
-            field_key = LABEL_MAP[label]
-            parsed[field_key] = value
-            matched = True
-            break
-        if matched:
+        match = re.match(r"(.+?)\s+(.+)", line)
+        if not match:
             continue
+        label, value = match.groups()
+        normalized = normalize_label(label)
+        field_key = LABEL_MAP.get(normalized)
+        if field_key:
+            parsed[field_key] = value.strip()
 
     if not parsed:
         return None
