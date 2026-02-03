@@ -253,6 +253,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['waiting_order'] = False
         return
 
+    # Auto-detect order-like messages - PIÙ LARGHE
+        order_keywords = ['g', 'gr', 'grammi', 'hash', 'frozen', 'dabwood', 'lean', 'filtr', 'og', 'cali']
+        if '€' in text_lower and any(kw in text_lower for kw in order_keywords):
+            parsed = parse_flexible_order(text)
+            preview = create_order_row(parsed)
+            await update.message.reply_text(
+                f"🤖 **Rilevato ordine:**\n{preview}\n\n"
+                f"`SI` per confermare\n"
+                f"`NO` per ignorare\n"
+                f"Oppure invia testo corretto",
+                parse_mode='Markdown'
+            )
+            context.user_data['pending_order'] = parsed
+            return
+
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
