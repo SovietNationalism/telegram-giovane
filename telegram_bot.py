@@ -103,6 +103,55 @@ def parse_flexible_order(text):
         'data': datetime.now().isoformat()
     }
 
+def normalize_price(raw_price):
+    if not raw_price:
+        return "??€"
+    price_matches = re.findall(r'(\d{1,4}(?:[.,]\d+)?)\s*€', raw_price.lower())
+    if price_matches:
+        return price_matches[-1].replace(',', '.') + "€"
+    fallback_match = re.search(r'(\d{1,4}(?:[.,]\d+)?)', raw_price)
+    if fallback_match:
+        return fallback_match.group(1).replace(',', '.') + "€"
+    return "??€"
+
+def parse_tabular_order_line(line):
+    parts = [part.strip() for part in re.split(r'\t+', line) if part.strip()]
+    if len(parts) < 4:
+        parts = [part.strip() for part in re.split(r'\s{2,}', line) if part.strip()]
+    if len(parts) < 4:
+        return None
+
+    cliente = parts[0]
+    prodotto = parts[1]
+    qty = parts[2]
+    price_raw = parts[3]
+    pacco_pronto = "✅" in parts[4] if len(parts) > 4 else False
+    pacco_consegnato = "✅" in parts[5] if len(parts) > 5 else False
+    note = " ".join(parts[6:]).strip() if len(parts) > 6 else ""
+
+    return {
+        'cliente': cliente,
+        'products': [{'qty': qty, 'product': prodotto}],
+        'prezzo': normalize_price(price_raw),
+        'note': note,
+        'pacco_pronto': pacco_pronto,
+        'pacco_consegnato': pacco_consegnato,
+        'data': datetime.now().isoformat()
+    }
+
+def parse_tabular_orders(text):
+    orders_parsed = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if line.lower().startswith("cliente"):
+            continue
+        parsed = parse_tabular_order_line(line)
+        if parsed:
+            orders_parsed.append(parsed)
+    return orders_parsed
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_orders_page(update, context, 0)
 
@@ -214,6 +263,17 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
     text_lower = text.lower()  # ✅ ADD THIS LINE
+
+    if "\n" in text and ("\t" in text or text_lower.startswith("cliente")):
+        bulk_orders = parse_tabular_orders(text)
+        if bulk_orders:
+            orders.extend(bulk_orders)
+            save_orders()
+            await update.message.reply_text(
+                f"✅ Importati {len(bulk_orders)} ordini!\n\n/start",
+                parse_mode='Markdown'
+            )
+            return
     
     # Editing
     if context.user_data.get('editing_idx') is not None:
