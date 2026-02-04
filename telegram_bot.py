@@ -265,8 +265,14 @@ async def list_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         prodotti = order.get("prodotti", "-")
         quantita = order.get("quantita", "-")
         product_summary = prodotti if quantita == "-" else f"{prodotti} ({quantita})"
+        indirizzo = order.get("indirizzo", "-")
+        nome_cognome = order.get("nome_cognome", "-")
+        contatto = order.get("contatto", "-")
         ready_marker = " | ✅" if order.get("ready") else ""
-        lines.append(f"{order['id']}. {username} | {product_summary}{ready_marker}")
+        details_line = " | ".join([indirizzo, nome_cognome, contatto])
+        lines.append(
+            f"{order['id']}. {username} | {product_summary}{ready_marker}\n{details_line}"
+        )
     await update.message.reply_text("\n".join(lines), reply_markup=build_orders_list_keyboard())
 
 
