@@ -284,6 +284,14 @@ def parse_created_at(value: str) -> Optional[date]:
     return None
 
 
+def format_order_date(order: Dict[str, str]) -> str:
+    date_value = order.get("put_date") or order.get("created_at", "")
+    parsed = parse_created_at(date_value) or parse_date(date_value)
+    if not parsed:
+        return date_value or "-"
+    return parsed.strftime("%b %d %Y").replace(" 0", " ")
+
+
 def extract_list_options(args: list[str]) -> Tuple[Optional[str], Optional[bool], Optional[date], Optional[date]]:
     query_parts: list[str] = []
     ready_filter: Optional[bool] = None
@@ -434,8 +442,9 @@ async def list_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         indirizzo = order.get("indirizzo", "-")
         nome_cognome = order.get("nome_cognome", "-")
         contatto = order.get("contatto", "-")
+        order_date = format_order_date(order)
         ready_marker = " | ✅" if order.get("ready") else ""
-        details_line = " | ".join([indirizzo, nome_cognome, contatto])
+        details_line = " | ".join([indirizzo, nome_cognome, contatto, order_date])
         lines.append(
             f"{order['id']}. {username} | {product_summary}\n{details_line}{ready_marker}"
         )
