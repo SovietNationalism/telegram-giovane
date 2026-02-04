@@ -43,6 +43,49 @@ LABEL_MAP = {
     "prodotto": "prodotti",
     "prodotto/i": "prodotti",
     "prodotti": "prodotti",
+    "quantita": "quantita",import json
+import logging
+import os
+import re
+from datetime import datetime
+from typing import Dict, Optional
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import (
+    Application,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters,
+)
+
+logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN non trovato!")
+
+DATA_PATH = os.getenv("ORDERS_DATA_PATH", "orders.json")
+
+ORDER_FIELDS = {
+    "username_telegram": "Username Telegram",
+    "prodotti": "Prodotto/i",
+    "quantita": "Quantità",
+    "metodo_pagamento": "Metodo di pagamento scelto",
+    "nome_cognome": "Nome e Cognome",
+    "contatto": "Num di Tel / Email",
+    "indirizzo": "Indirizzo o punto di ritiro",
+    "note": "Eventuali note o richieste speciali",
+}
+
+LABEL_MAP = {
+    "username": "username_telegram",
+    "username telegram": "username_telegram",
+    "prodotto": "prodotti",
+    "prodotto/i": "prodotti",
+    "prodotti": "prodotti",
     "quantita": "quantita",
     "quantità": "quantita",
     "metodo di pagamento scelto": "metodo_pagamento",
@@ -231,41 +274,6 @@ def build_orders_list_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def extract_inpost_tracking_number(text: str) -> Optional[str]:
-    match = re.fullmatch(r"\s*(\d{20,24})\s*", text)
-    if not match:
-        return None
-    return match.group(1)
-
-
-def fetch_inpost_tracking(tracking_number: str) -> Optional[Dict[str, str]]:
-    url = f"https://api-shipx-pl.easypack24.net/v1/tracking/{tracking_number}"
-    try:
-        with urllib.request.urlopen(url, timeout=10) as response:
-            payload = json.load(response)
-    except (urllib.error.URLError, json.JSONDecodeError):
-        return None
-
-    if not isinstance(payload, dict):
-        return None
-    details = payload.get("tracking_details") or []
-    latest_detail = details[-1] if isinstance(details, list) and details else {}
-    status = (
-        payload.get("status")
-        or latest_detail.get("status")
-        or latest_detail.get("description")
-        or "Stato non disponibile"
-    )
-    location = (
-        latest_detail.get("location")
-        or latest_detail.get("facility")
-        or latest_detail.get("place")
-        or payload.get("origin")
-        or "Posizione non disponibile"
-    )
-    return {"status": status, "location": location}
-
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = (
         "Ciao! Inviami un messaggio con il form ordine compilato e lo salverò.\n\n"
@@ -294,11 +302,7 @@ async def list_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         quantita = order.get("quantita", "-")
         product_summary = prodotti if quantita == "-" else f"{prodotti} ({quantita})"
         ready_marker = " | ✅" if order.get("ready") else ""
-        tracking_number = order.get("tracking_number")
-        tracking_marker = f" | {tracking_number}" if tracking_number else ""
-        lines.append(
-            f"{order['id']}. {username} | {product_summary}{ready_marker}{tracking_marker}"
-        )
+        lines.append(f"{order['id']}. {username} | {product_summary}{ready_marker}")
     await update.message.reply_text("\n".join(lines), reply_markup=build_orders_list_keyboard())
 
 
@@ -381,27 +385,6 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = update.message.text or ""
-    if context.user_data.pop("awaiting_tracking_number", False):
-        order_id = context.user_data.pop("tracking_order_id", None)
-        if not order_id:
-            await update.message.reply_text("Ordine non trovato per il tracking.")
-            return
-        response = text.strip()
-        if response.lower() in {"no", "n", "skip", "salta"}:
-            await update.message.reply_text("Tracking saltato.")
-            return
-        data = load_orders()
-        orders = data.get("orders", [])
-        for order in orders:
-            if str(order["id"]) == str(order_id):
-                order["tracking_number"] = response
-                save_orders(data)
-                await update.message.reply_text(
-                    f"✅ Tracking aggiunto all'ordine #{order_id}."
-                )
-                return
-        await update.message.reply_text("Ordine non trovato.")
-        return
     if context.user_data.pop("awaiting_ready_order", False):
         order_id = text.strip()
         if not order_id.isdigit():
@@ -414,28 +397,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 order["ready"] = True
                 save_orders(data)
                 await update.message.reply_text(f"✅ Ordine #{order_id} segnato come pronto.")
-                context.user_data["awaiting_tracking_number"] = True
-                context.user_data["tracking_order_id"] = order_id
-                await update.message.reply_text(
-                    "Inserisci il numero di tracking (oppure rispondi No per saltare)."
-                )
                 return
         await update.message.reply_text("Ordine non trovato.")
-        return
-    tracking_number = extract_inpost_tracking_number(text)
-    if tracking_number:
-        info = fetch_inpost_tracking(tracking_number)
-        if not info:
-            await update.message.reply_text(
-                "Non riesco a recuperare i dati InPost al momento. Riprova più tardi."
-            )
-            return
-        await update.message.reply_text(
-            "📦 InPost tracking:\n"
-            f"• Numero: {tracking_number}\n"
-            f"• Stato: {info['status']}\n"
-            f"• Posizione: {info['location']}"
-        )
         return
     parsed = parse_order_message(text)
     if not parsed:
