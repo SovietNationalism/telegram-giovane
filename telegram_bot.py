@@ -196,14 +196,9 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
         if "username_telegram" not in parsed and looks_like_username(unlabeled_value):
             parsed["username_telegram"] = ensure_username_prefix(unlabeled_value)
             return
-        if section in ("shipping", "general"):
-            if "contatto" not in parsed and (
-                email_regex.search(unlabeled_value) or phone_regex.search(unlabeled_value)
-            ):
+        if section in ("shipping", "general") and "contatto" not in parsed:
+            if email_regex.search(unlabeled_value) or phone_regex.search(unlabeled_value):
                 parsed["contatto"] = unlabeled_value
-                return
-            if "indirizzo" not in parsed and looks_like_address(unlabeled_value):
-                parsed["indirizzo"] = unlabeled_value
                 return
         if section in ("order", "general"):
             if "metodo_pagamento" not in parsed and looks_like_payment(unlabeled_value):
@@ -214,6 +209,10 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
                 return
             if "prodotti" not in parsed:
                 parsed["prodotti"] = unlabeled_value
+                return
+        if section in ("shipping", "general"):
+            if "indirizzo" not in parsed and looks_like_address(unlabeled_value):
+                parsed["indirizzo"] = unlabeled_value
                 return
         if section in ("shipping", "general") and "nome_cognome" not in parsed and looks_like_name(unlabeled_value):
             parsed["nome_cognome"] = unlabeled_value
