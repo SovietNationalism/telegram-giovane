@@ -78,8 +78,11 @@ def save_orders(data: Dict[str, dict]) -> None:
 def parse_order_message(text: str) -> Optional[Dict[str, str]]:
     parsed: Dict[str, str] = {}
     in_shipping_section = False
+    in_order_section = False
     email_regex = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
     phone_regex = re.compile(r"\+?\d[\d\s\-().]{5,}\d")
+    quantity_regex = re.compile(r"\b\d+(?:[.,]\d+)?\s*(g|kg|mg|ml|l|pz|pezzi|x|oz)\b", re.IGNORECASE)
+    currency_regex = re.compile(r"[$€]|eur|euro", re.IGNORECASE)
     address_keywords = (
         "via",
         "viale",
@@ -93,6 +96,19 @@ def parse_order_message(text: str) -> Optional[Dict[str, str]]:
         "locker",
         "inpost",
     )
+    payment_keywords = (
+        "bonifico",
+        "paypal",
+        "contanti",
+        "carta",
+        "postepay",
+        "ricarica",
+        "revolut",
+        "crypto",
+        "bitcoin",
+        "btc",
+        "usdt",
+    )
 
     def clean_unlabeled(value: str) -> str:
         return value.lstrip("•").strip()
@@ -102,6 +118,17 @@ def parse_order_message(text: str) -> Optional[Dict[str, str]]:
         if any(keyword in lowered for keyword in address_keywords):
             return True
         return bool(re.search(r"\d", value))
+
+    def looks_like_quantity(value: str) -> bool:
+        if quantity_regex.search(value):
+            return True
+        return bool(re.fullmatch(r"\d+(?:[.,]\d+)?", value.strip()))
+
+    def looks_like_payment(value: str) -> bool:
+        lowered = value.lower()
+        if any(keyword in lowered for keyword in payment_keywords):
+            return True
+        return bool(currency_regex.search(value))
 
     label_patterns = [
         (
@@ -118,6 +145,11 @@ def parse_order_message(text: str) -> Optional[Dict[str, str]]:
             continue
         if "informazioni spedizione" in line.lower():
             in_shipping_section = True
+            in_order_section = False
+            continue
+        if "informazioni ordine" in line.lower():
+            in_order_section = True
+            in_shipping_section = False
             continue
         if "informazioni" in line.lower():
             continue
@@ -142,21 +174,34 @@ def parse_order_message(text: str) -> Optional[Dict[str, str]]:
                 parsed[field_key] = value
             break
         else:
-            if not in_shipping_section:
+            if in_shipping_section:
+                unlabeled_value = clean_unlabeled(line)
+                if not unlabeled_value:
+                    continue
+                if "contatto" not in parsed and (
+                    email_regex.search(unlabeled_value) or phone_regex.search(unlabeled_value)
+                ):
+                    parsed["contatto"] = unlabeled_value
+                    continue
+                if "indirizzo" not in parsed and looks_like_address(unlabeled_value):
+                    parsed["indirizzo"] = unlabeled_value
+                    continue
+                if "nome_cognome" not in parsed:
+                    parsed["nome_cognome"] = unlabeled_value
+                continue
+            if not in_order_section:
                 continue
             unlabeled_value = clean_unlabeled(line)
             if not unlabeled_value:
                 continue
-            if "contatto" not in parsed and (
-                email_regex.search(unlabeled_value) or phone_regex.search(unlabeled_value)
-            ):
-                parsed["contatto"] = unlabeled_value
+            if "metodo_pagamento" not in parsed and looks_like_payment(unlabeled_value):
+                parsed["metodo_pagamento"] = unlabeled_value
                 continue
-            if "indirizzo" not in parsed and looks_like_address(unlabeled_value):
-                parsed["indirizzo"] = unlabeled_value
+            if "quantita" not in parsed and looks_like_quantity(unlabeled_value):
+                parsed["quantita"] = unlabeled_value
                 continue
-            if "nome_cognome" not in parsed:
-                parsed["nome_cognome"] = unlabeled_value
+            if "prodotti" not in parsed:
+                parsed["prodotti"] = unlabeled_value
 
     if not parsed:
         return None
