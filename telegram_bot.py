@@ -137,6 +137,22 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
     def clean_unlabeled(value: str) -> str:
         return value.lstrip("•").strip()
 
+    def ensure_username_prefix(value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            return cleaned
+        if cleaned.startswith("@"):
+            return cleaned
+        return f"@{cleaned}"
+
+    def is_labeled_line(value: str) -> bool:
+        for _, field_key, pattern in label_patterns:
+            if not field_key:
+                continue
+            if pattern.match(value):
+                return True
+        return False
+
     def looks_like_address(value: str) -> bool:
         lowered = value.lower()
         if any(keyword in lowered for keyword in address_keywords):
@@ -182,7 +198,7 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
         if "informazioni" in line.lower():
             continue
         if line.startswith("@") and "username_telegram" not in parsed:
-            parsed["username_telegram"] = line
+            parsed["username_telegram"] = ensure_username_prefix(line)
             continue
         for label, field_key, pattern in label_patterns:
             if not field_key:
@@ -196,9 +212,13 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
                     next_value = next_line.strip()
                     if not next_value or "informazioni" in next_value.lower():
                         continue
+                    if is_labeled_line(next_value):
+                        break
                     value = next_value
                     break
             if value:
+                if field_key == "username_telegram":
+                    value = ensure_username_prefix(value)
                 parsed[field_key] = value
             break
         else:
