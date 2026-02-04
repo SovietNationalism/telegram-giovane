@@ -356,7 +356,12 @@ def build_orders_keyboard(order_id: int) -> InlineKeyboardMarkup:
 
 def build_orders_list_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("Pronto", callback_data="ready_prompt")]]
+        [
+            [
+                InlineKeyboardButton("Pronto", callback_data="ready_prompt"),
+                InlineKeyboardButton("Edit", callback_data="edit_list_prompt"),
+            ]
+        ]
     )
 
 
@@ -381,11 +386,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "Comandi disponibili:\n"
         "• /orders [query] [--ready|--pending] [--from YYYY-MM-DD] [--to YYYY-MM-DD]\n"
         "• /order <id> - mostra un ordine specifico\n"
-        "• /edit_order <id> <campo> <valore> - modifica un campo\n"
         "• /search <termine> - cerca per username, prodotto o stato\n"
         "• /delete_order <id> - elimina un ordine\n"
         "• /fields [termine] - elenco campi con suggerimenti\n"
-        "• /export [--ready|--pending] [--from YYYY-MM-DD] [--to YYYY-MM-DD] - esporta CSV"
+        "• /export [--ready|--pending] [--from YYYY-MM-DD] [--to YYYY-MM-DD] - esporta CSV\n"
+        "• /import - importa un CSV di backup esportato dal bot"
     )
     await update.message.reply_text(message)
 
@@ -446,26 +451,6 @@ async def list_fields(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     await update.message.reply_text("Campi modificabili:\n" + "\n".join(lines))
 
 
-async def edit_order(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if len(context.args) < 3:
-        await update.message.reply_text("Uso: /edit_order <id> <campo> <valore>")
-        return
-    order_id, field_key = context.args[0], context.args[1]
-    if field_key not in ORDER_FIELDS:
-        await update.message.reply_text("Campo non valido. Usa /fields per l'elenco.")
-        return
-    value = " ".join(context.args[2:]).strip()
-    data = load_orders()
-    orders = data.get("orders", [])
-    for order in orders:
-        if str(order["id"]) == order_id:
-            order[field_key] = value
-            save_orders(data)
-            await update.message.reply_text("✅ Ordine aggiornato.\n\n" + format_order(order))
-            return
-    await update.message.reply_text("Ordine non trovato.")
-
-
 async def delete_order(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
         await update.message.reply_text("Uso: /delete_order <id>")
@@ -504,11 +489,66 @@ async def export_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         os.remove(temp_path)
 
 
+async def import_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    context.user_data["awaiting_import"] = True
+    await update.message.reply_text(
+        "Invia il file CSV esportato dal bot per importare i dati (sovrascrive gli ordini esistenti)."
+    )
+
+
 async def search_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
         await update.message.reply_text("Uso: /search <termine>")
         return
     await list_orders(update, context)
+
+
+async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not context.user_data.pop("awaiting_import", False):
+        return
+    document = update.message.document
+    if not document:
+        await update.message.reply_text("Invia un file CSV valido.")
+        return
+    if not document.file_name or not document.file_name.lower().endswith(".csv"):
+        await update.message.reply_text("Il file deve essere un CSV esportato dal bot.")
+        return
+    temp_path = None
+    try:
+        file = await document.get_file()
+        with tempfile.NamedTemporaryFile("wb", suffix=".csv", delete=False) as handle:
+            temp_path = handle.name
+        await file.download_to_drive(custom_path=temp_path)
+        with open(temp_path, "r", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            headers = reader.fieldnames or []
+            required_headers = ["id", "created_at", "ready", "sender", *ORDER_FIELDS.keys(), "raw_text"]
+            missing_headers = [header for header in required_headers if header not in headers]
+            if missing_headers:
+                await update.message.reply_text(
+                    "CSV non valido. Mancano colonne: " + ", ".join(missing_headers)
+                )
+                return
+            imported_orders = []
+            for row in reader:
+                if not row.get("id"):
+                    continue
+                order = {key: row.get(key, "").strip() for key in required_headers}
+                order["id"] = int(order["id"])
+                order["ready"] = order["ready"].strip().lower() == "yes"
+                imported_orders.append(order)
+        if not imported_orders:
+            await update.message.reply_text("Nessun ordine trovato nel CSV.")
+            return
+        next_id = max(order["id"] for order in imported_orders) + 1
+        data = {"next_id": next_id, "orders": imported_orders}
+        save_orders(data)
+        await update.message.reply_text(
+            f"✅ Import completato. Ordini caricati: {len(imported_orders)}."
+        )
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
 
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -519,6 +559,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if query.data == "ready_prompt":
         context.user_data["awaiting_ready_order"] = True
         await query.message.reply_text("Inserisci il numero dell'ordine da segnare come pronto.")
+        return
+    if query.data == "edit_list_prompt":
+        context.user_data["awaiting_edit_order_number"] = True
+        await query.message.reply_text(
+            "Inserisci il numero dell'ordine da modificare. "
+            "Poi potrai inviare righe in formato Campo: Valore (es. Prodotto: Dry)."
+        )
         return
     action, payload = query.data.split(":", 1)
     if action == "delete":
@@ -570,6 +617,69 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 await update.message.reply_text(f"✅ Ordine #{order_id} segnato come pronto.")
                 return
         await update.message.reply_text("Ordine non trovato.")
+        return
+    if context.user_data.pop("awaiting_edit_order_number", False):
+        order_id = text.strip()
+        if not order_id.isdigit():
+            await update.message.reply_text("Inserisci un numero ordine valido.")
+            return
+        data = load_orders()
+        order = next((item for item in data.get("orders", []) if str(item["id"]) == order_id), None)
+        if not order:
+            await update.message.reply_text("Ordine non trovato.")
+            return
+        context.user_data["editing_order_id"] = order_id
+        await update.message.reply_text(
+            "✅ Ordine selezionato. Invia una riga per volta nel formato Campo: Valore.\n"
+            "Scrivi 'fine' per terminare.\n\n"
+            + format_order(order)
+        )
+        return
+    editing_order_id = context.user_data.get("editing_order_id")
+    if editing_order_id:
+        lowered = text.strip().lower()
+        if lowered in {"fine", "stop", "chiudi"}:
+            context.user_data.pop("editing_order_id", None)
+            await update.message.reply_text("Modifiche concluse.")
+            return
+        lines = [line for line in text.splitlines() if line.strip()]
+        if not lines:
+            await update.message.reply_text("Invia almeno una riga nel formato Campo: Valore.")
+            return
+        data = load_orders()
+        order = next((item for item in data.get("orders", []) if str(item["id"]) == editing_order_id), None)
+        if not order:
+            context.user_data.pop("editing_order_id", None)
+            await update.message.reply_text("Ordine non trovato.")
+            return
+        updated_fields = []
+        for line in lines:
+            if ":" not in line:
+                await update.message.reply_text(
+                    f"Formato non valido: '{line}'. Usa Campo: Valore."
+                )
+                continue
+            raw_label, value = line.split(":", 1)
+            label_key = normalize_label(raw_label)
+            field_key = LABEL_MAP.get(label_key, label_key)
+            if field_key not in ORDER_FIELDS:
+                await update.message.reply_text(
+                    f"Campo non riconosciuto: '{raw_label}'. Usa /fields per l'elenco."
+                )
+                continue
+            value = value.strip()
+            if not value:
+                await update.message.reply_text(
+                    f"Valore mancante per '{raw_label}'."
+                )
+                continue
+            order[field_key] = value
+            updated_fields.append(ORDER_FIELDS.get(field_key, field_key))
+        if updated_fields:
+            save_orders(data)
+            await update.message.reply_text(
+                "✅ Campi aggiornati: " + ", ".join(updated_fields) + "\n\n" + format_order(order)
+            )
         return
     awaiting_edit = context.user_data.pop("awaiting_edit", None)
     if awaiting_edit:
@@ -703,12 +813,13 @@ def main() -> None:
     application.add_handler(CommandHandler("orders", list_orders))
     application.add_handler(CommandHandler("order", show_order))
     application.add_handler(CommandHandler("fields", list_fields))
-    application.add_handler(CommandHandler("edit_order", edit_order))
     application.add_handler(CommandHandler("delete_order", delete_order))
     application.add_handler(CommandHandler("export", export_orders))
+    application.add_handler(CommandHandler("import", import_orders))
     application.add_handler(CommandHandler("search", search_orders))
     application.add_handler(CallbackQueryHandler(handle_callback))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.Document.ALL, handle_document))
 
     application.run_polling()
 
