@@ -22,7 +22,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise ValueError("❌ BOT_TOKEN non trovato!")
 
-DATA_PATH = os.getenv("ORDERS_DATA_PATH", "orders.json")
+DEFAULT_DATA_DIR = os.getenv("ORDERS_DATA_DIR", "data")
+DATA_PATH = os.getenv("ORDERS_DATA_PATH", os.path.join(DEFAULT_DATA_DIR, "orders.json"))
 
 ORDER_FIELDS = {
     "username_telegram": "Username Telegram",
@@ -71,6 +72,9 @@ def load_orders() -> Dict[str, dict]:
 
 
 def save_orders(data: Dict[str, dict]) -> None:
+    data_dir = os.path.dirname(DATA_PATH)
+    if data_dir:
+        os.makedirs(data_dir, exist_ok=True)
     with open(DATA_PATH, "w", encoding="utf-8") as handle:
         json.dump(data, handle, ensure_ascii=False, indent=2)
 
