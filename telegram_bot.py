@@ -78,7 +78,6 @@ def save_orders(data: Dict[str, dict]) -> None:
     with open(DATA_PATH, "w", encoding="utf-8") as handle:
         json.dump(data, handle, ensure_ascii=False, indent=2)
 
-
 def parse_order_message(text: str) -> Optional[Dict[str, str]]:
     parsed: Dict[str, str] = {}
     in_shipping_section = False
