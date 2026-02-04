@@ -2,51 +2,6 @@ import json
 import logging
 import os
 import re
-import urllib.error
-import urllib.request
-from datetime import datetime
-from typing import Dict, Optional
-
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import (
-    Application,
-    CallbackQueryHandler,
-    CommandHandler,
-    ContextTypes,
-    MessageHandler,
-    filters,
-)
-
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-if not BOT_TOKEN:
-    raise ValueError("❌ BOT_TOKEN non trovato!")
-
-DATA_PATH = os.getenv("ORDERS_DATA_PATH", "orders.json")
-
-ORDER_FIELDS = {
-    "username_telegram": "Username Telegram",
-    "prodotti": "Prodotto/i",
-    "quantita": "Quantità",
-    "metodo_pagamento": "Metodo di pagamento scelto",
-    "nome_cognome": "Nome e Cognome",
-    "contatto": "Num di Tel / Email",
-    "indirizzo": "Indirizzo o punto di ritiro",
-    "note": "Eventuali note o richieste speciali",
-}
-
-LABEL_MAP = {
-    "username": "username_telegram",
-    "username telegram": "username_telegram",
-    "prodotto": "prodotti",
-    "prodotto/i": "prodotti",
-    "prodotti": "prodotti",
-    "quantita": "quantita",import json
-import logging
-import os
-import re
 from datetime import datetime
 from typing import Dict, Optional
 
