@@ -437,7 +437,7 @@ async def list_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         ready_marker = " | ✅" if order.get("ready") else ""
         details_line = " | ".join([indirizzo, nome_cognome, contatto])
         lines.append(
-            f"{order['id']}. {username} | {product_summary}{ready_marker}\n{details_line}"
+            f"{order['id']}. {username} | {product_summary}\n{details_line}{ready_marker}"
         )
     await update.message.reply_text("\n".join(lines), reply_markup=build_orders_list_keyboard())
 
@@ -578,7 +578,9 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
     if query.data == "ready_prompt":
         context.user_data["awaiting_ready_order"] = True
-        await query.message.reply_text("Inserisci il numero dell'ordine da segnare come pronto.")
+        await query.message.reply_text(
+            "Inserisci il numero dell'ordine da segnare come pronto (puoi separare più numeri con virgole)."
+        )
         return
     if query.data == "edit_list_prompt":
         context.user_data["awaiting_edit_order_number"] = True
@@ -624,18 +626,34 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = update.message.text or ""
     if context.user_data.pop("awaiting_ready_order", False):
-        order_id = text.strip()
-        if not order_id.isdigit():
+        order_ids = [part.strip() for part in text.split(",") if part.strip()]
+        if not order_ids or any(not order_id.isdigit() for order_id in order_ids):
             await update.message.reply_text("Inserisci un numero ordine valido.")
             return
+        order_ids = sorted(set(order_ids), key=order_ids.index)
         data = load_orders()
         orders = data.get("orders", [])
-        for order in orders:
-            if str(order["id"]) == order_id:
-                order["ready"] = True
-                save_orders(data)
-                await update.message.reply_text(f"✅ Ordine #{order_id} segnato come pronto.")
-                return
+        matched_ids = []
+        missing_ids = []
+        lookup = {str(order["id"]): order for order in orders}
+        for order_id in order_ids:
+            order = lookup.get(order_id)
+            if not order:
+                missing_ids.append(order_id)
+                continue
+            order["ready"] = True
+            matched_ids.append(order_id)
+        if matched_ids:
+            save_orders(data)
+            if len(matched_ids) == 1:
+                await update.message.reply_text(f"✅ Ordine #{matched_ids[0]} segnato come pronto.")
+            else:
+                joined_ids = ", ".join(f"#{order_id}" for order_id in matched_ids)
+                await update.message.reply_text(f"✅ Ordini {joined_ids} segnati come pronti.")
+        if missing_ids:
+            await update.message.reply_text("Ordini non trovati: " + ", ".join(missing_ids) + ".")
+        if matched_ids:
+            return
         await update.message.reply_text("Ordine non trovato.")
         return
     if context.user_data.pop("awaiting_edit_order_number", False):
