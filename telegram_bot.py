@@ -106,6 +106,8 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
     email_regex = re.compile(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", re.IGNORECASE)
     phone_regex = re.compile(r"\+?\d[\d\s\-().]{5,}\d")
     quantity_regex = re.compile(r"\b\d+(?:[.,]\d+)?\s*(g|kg|mg|ml|l|pz|pezzi|x|oz)\b", re.IGNORECASE)
+    quantity_list_regex = re.compile(r"^\d+(?:\s*[,;/x]\s*\d+)+$", re.IGNORECASE)
+    quantity_spaced_list_regex = re.compile(r"^\d+(?:\s+\d+)+$")
     currency_regex = re.compile(r"[$€]|eur|euro", re.IGNORECASE)
     address_keywords = (
         "via",
@@ -135,7 +137,7 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
     )
 
     def clean_unlabeled(value: str) -> str:
-        return value.lstrip("•").strip()
+        return value.lstrip("•").lstrip("-").strip()
 
     def ensure_username_prefix(value: str) -> str:
         cleaned = value.strip()
@@ -144,6 +146,10 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
         if cleaned.startswith("@"):
             return cleaned
         return f"@{cleaned}"
+
+    def looks_like_username(value: str) -> bool:
+        cleaned = clean_unlabeled(value)
+        return bool(re.fullmatch(r"@\w+", cleaned))
 
     def is_labeled_line(value: str) -> bool:
         for _, field_key, pattern in label_patterns:
@@ -162,13 +168,58 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
     def looks_like_quantity(value: str) -> bool:
         if quantity_regex.search(value):
             return True
-        return bool(re.fullmatch(r"\d+(?:[.,]\d+)?", value.strip()))
+        stripped = value.strip()
+        if quantity_list_regex.match(stripped) or quantity_spaced_list_regex.match(stripped):
+            return True
+        return bool(re.fullmatch(r"\d+(?:[.,]\d+)?", stripped))
 
     def looks_like_payment(value: str) -> bool:
         lowered = value.lower()
         if any(keyword in lowered for keyword in payment_keywords):
             return True
         return bool(currency_regex.search(value))
+
+    def looks_like_name(value: str) -> bool:
+        if re.search(r"\d", value):
+            return False
+        lowered = value.lower()
+        if any(keyword in lowered for keyword in address_keywords):
+            return False
+        words = [word for word in re.split(r"\s+", value.strip()) if word]
+        if len(words) < 2:
+            return False
+        return bool(re.fullmatch(r"[A-Za-zÀ-ÿ'’.\- ]+", value.strip()))
+
+    def assign_unlabeled_value(unlabeled_value: str, section: str) -> None:
+        if not unlabeled_value:
+            return
+        if "username_telegram" not in parsed and looks_like_username(unlabeled_value):
+            parsed["username_telegram"] = ensure_username_prefix(unlabeled_value)
+            return
+        if section in ("shipping", "general"):
+            if "contatto" not in parsed and (
+                email_regex.search(unlabeled_value) or phone_regex.search(unlabeled_value)
+            ):
+                parsed["contatto"] = unlabeled_value
+                return
+            if "indirizzo" not in parsed and looks_like_address(unlabeled_value):
+                parsed["indirizzo"] = unlabeled_value
+                return
+        if section in ("order", "general"):
+            if "metodo_pagamento" not in parsed and looks_like_payment(unlabeled_value):
+                parsed["metodo_pagamento"] = unlabeled_value
+                return
+            if "quantita" not in parsed and looks_like_quantity(unlabeled_value):
+                parsed["quantita"] = unlabeled_value
+                return
+            if "prodotti" not in parsed:
+                parsed["prodotti"] = unlabeled_value
+                return
+        if section in ("shipping", "general") and "nome_cognome" not in parsed and looks_like_name(unlabeled_value):
+            parsed["nome_cognome"] = unlabeled_value
+            return
+        if section == "shipping" and "nome_cognome" not in parsed:
+            parsed["nome_cognome"] = unlabeled_value
 
     label_patterns = [
         (
@@ -197,8 +248,8 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
             continue
         if "informazioni" in line.lower():
             continue
-        if line.startswith("@") and "username_telegram" not in parsed:
-            parsed["username_telegram"] = ensure_username_prefix(line)
+        if looks_like_username(line) and "username_telegram" not in parsed:
+            parsed["username_telegram"] = ensure_username_prefix(clean_unlabeled(line))
             continue
         for label, field_key, pattern in label_patterns:
             if not field_key:
@@ -222,34 +273,14 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
                 parsed[field_key] = value
             break
         else:
-            if in_shipping_section:
-                unlabeled_value = clean_unlabeled(line)
-                if not unlabeled_value:
-                    continue
-                if "contatto" not in parsed and (
-                    email_regex.search(unlabeled_value) or phone_regex.search(unlabeled_value)
-                ):
-                    parsed["contatto"] = unlabeled_value
-                    continue
-                if "indirizzo" not in parsed and looks_like_address(unlabeled_value):
-                    parsed["indirizzo"] = unlabeled_value
-                    continue
-                if "nome_cognome" not in parsed:
-                    parsed["nome_cognome"] = unlabeled_value
-                continue
-            if not in_order_section:
-                continue
             unlabeled_value = clean_unlabeled(line)
-            if not unlabeled_value:
+            if in_shipping_section:
+                assign_unlabeled_value(unlabeled_value, "shipping")
                 continue
-            if "metodo_pagamento" not in parsed and looks_like_payment(unlabeled_value):
-                parsed["metodo_pagamento"] = unlabeled_value
+            if in_order_section:
+                assign_unlabeled_value(unlabeled_value, "order")
                 continue
-            if "quantita" not in parsed and looks_like_quantity(unlabeled_value):
-                parsed["quantita"] = unlabeled_value
-                continue
-            if "prodotti" not in parsed:
-                parsed["prodotti"] = unlabeled_value
+            assign_unlabeled_value(unlabeled_value, "general")
 
     if not parsed:
         return None, date_override
