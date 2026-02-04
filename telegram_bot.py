@@ -78,6 +78,12 @@ def save_orders(data: Dict[str, dict]) -> None:
     with open(DATA_PATH, "w", encoding="utf-8") as handle:
         json.dump(data, handle, ensure_ascii=False, indent=2)
 
+
+def split_order_blocks(text: str) -> list[str]:
+    parts = re.split(r"^\s*---\s*$", text, flags=re.MULTILINE)
+    return [part.strip() for part in parts if part.strip()]
+
+
 def parse_order_message(text: str) -> Optional[Dict[str, str]]:
     parsed: Dict[str, str] = {}
     in_shipping_section = False
@@ -358,27 +364,43 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 return
         await update.message.reply_text("Ordine non trovato.")
         return
-    parsed = parse_order_message(text)
-    if not parsed:
+    blocks = split_order_blocks(text)
+    parsed_blocks = []
+    for block in blocks:
+        parsed = parse_order_message(block)
+        if parsed:
+            parsed_blocks.append((block, parsed))
+    if not parsed_blocks:
         return
 
     data = load_orders()
-    order_id = data.get("next_id", 1)
-    order = {
-        "id": order_id,
-        "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
-        "raw_text": text,
-        "sender": update.message.from_user.username or update.message.from_user.full_name,
-    }
-    order.update(parsed)
-    data.setdefault("orders", []).append(order)
-    data["next_id"] = order_id + 1
+    new_orders = []
+    for block, parsed in parsed_blocks:
+        order_id = data.get("next_id", 1)
+        order = {
+            "id": order_id,
+            "created_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+            "raw_text": block,
+            "sender": update.message.from_user.username or update.message.from_user.full_name,
+        }
+        order.update(parsed)
+        data.setdefault("orders", []).append(order)
+        data["next_id"] = order_id + 1
+        new_orders.append(order)
     save_orders(data)
 
-    await update.message.reply_text(
-        "✅ Ordine salvato!\n\n" + format_order(order),
-        reply_markup=build_orders_keyboard(order_id),
+    if len(new_orders) == 1:
+        order = new_orders[0]
+        await update.message.reply_text(
+            "✅ Ordine salvato!\n\n" + format_order(order),
+            reply_markup=build_orders_keyboard(order["id"]),
+        )
+        return
+
+    message = "✅ Ordini salvati!\n\n" + "\n\n".join(
+        format_order(order) for order in new_orders
     )
+    await update.message.reply_text(message)
 
 
 def main() -> None:
