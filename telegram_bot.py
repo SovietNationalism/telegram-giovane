@@ -410,6 +410,58 @@ def build_value_suggestions(field_key: str, orders: Iterable[Dict[str, str]], li
     return seen
 
 
+def normalize_product_key(value: str) -> str:
+    cleaned = re.sub(r"\s+", " ", value.strip().lower())
+    return cleaned
+
+
+def format_product_name(value: str) -> str:
+    cleaned = re.sub(r"\s+", " ", value.strip())
+    if not cleaned:
+        return cleaned
+    return cleaned[0].upper() + cleaned[1:]
+
+
+def parse_quantity_list(value: str) -> list[str]:
+    if not value:
+        return []
+    cleaned = value.strip().strip("()[]{}")
+    if not cleaned:
+        return []
+    parts = re.split(r"\s*[,;/]\s*", cleaned)
+    if len(parts) == 1:
+        tokens = cleaned.split()
+        if len(tokens) > 1 and all(re.fullmatch(r"\d+(?:[.,]\d+)?[a-zA-Z]*", token) for token in tokens):
+            parts = tokens
+    return [part.strip() for part in parts if part.strip()]
+
+
+def parse_products_list(prodotti: str, quantity_count: int) -> list[str]:
+    if not prodotti:
+        return []
+    if "," in prodotti:
+        return [part.strip() for part in prodotti.split(",") if part.strip()]
+    if quantity_count > 1:
+        quantity_token = re.compile(r"\b\d+(?:[.,]\d+)?\s*(?:g|kg|mg|ml|l|pz|pezzi|x|oz)?\b", re.IGNORECASE)
+        segments = [segment.strip() for segment in quantity_token.split(prodotti) if segment.strip()]
+        if len(segments) == quantity_count:
+            return [re.sub(r"^(di|da|d')\s+", "", segment, flags=re.IGNORECASE) for segment in segments]
+    return [prodotti.strip()]
+
+
+def parse_quantity_value(value: str) -> Tuple[Optional[float], str]:
+    if not value:
+        return None, ""
+    cleaned = value.strip().lower()
+    cleaned = cleaned.lstrip("x")
+    match = re.match(r"^\s*(\d+(?:[.,]\d+)?)\s*([a-z]+)?\s*$", cleaned, re.IGNORECASE)
+    if not match:
+        return None, cleaned
+    number = float(match.group(1).replace(",", "."))
+    unit = (match.group(2) or "").lower()
+    return number, unit
+
+
 def format_order(order: Dict[str, str]) -> str:
     lines = [f"🧾 Ordine #{order['id']}"]
     for field_key, label in ORDER_FIELDS.items():
@@ -463,6 +515,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "• /orders [query] [--ready|--pending] [--from YYYY-MM-DD] [--to YYYY-MM-DD]\n"
         "• /order <id> - mostra un ordine specifico\n"
         "• /search <termine> - cerca per username, prodotto o stato\n"
+        "• /totals - riepilogo quantità ordini non pronti\n"
         "• /delete_order <id> - elimina un ordine\n"
         "• /fields [termine] - elenco campi con suggerimenti\n"
         "• /export [--ready|--pending] [--from YYYY-MM-DD] [--to YYYY-MM-DD] - esporta CSV\n"
@@ -526,6 +579,52 @@ async def list_fields(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.message.reply_text("Nessun campo trovato. Usa /fields senza filtri.")
         return
     await update.message.reply_text("Campi modificabili:\n" + "\n".join(lines))
+
+
+async def totals_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    data = load_orders()
+    orders = [order for order in data.get("orders", []) if not order.get("ready")]
+    if not orders:
+        await update.message.reply_text("Nessun ordine in sospeso.")
+        return
+    totals: Dict[str, Dict[str, float]] = {}
+    display_names: Dict[str, str] = {}
+    for order in orders:
+        prodotti = order.get("prodotti", "")
+        quantita = order.get("quantita", "")
+        quantities = parse_quantity_list(quantita)
+        products = parse_products_list(prodotti, len(quantities))
+        if not products:
+            continue
+        if len(quantities) == 1 and len(products) > 1:
+            quantities = quantities * len(products)
+        if len(quantities) != len(products) and len(products) == 1 and len(quantities) > 1:
+            quantities = [" ".join(quantities)]
+        for product, quantity in zip(products, quantities or ["1"] * len(products)):
+            product_name = product.strip()
+            if not product_name:
+                continue
+            key = normalize_product_key(product_name)
+            display_names.setdefault(key, format_product_name(product_name))
+            amount, unit = parse_quantity_value(quantity)
+            if amount is None:
+                continue
+            totals.setdefault(key, {})
+            totals[key][unit] = totals[key].get(unit, 0.0) + amount
+    if not totals:
+        await update.message.reply_text("Nessun totale disponibile.")
+        return
+    lines = []
+    for key in sorted(totals, key=lambda item: display_names.get(item, item)):
+        name = display_names.get(key, key)
+        for unit, amount in totals[key].items():
+            if amount.is_integer():
+                amount_text = str(int(amount))
+            else:
+                amount_text = str(amount).rstrip("0").rstrip(".")
+            unit_text = f"{unit}" if unit else ""
+            lines.append(f"{name} {amount_text}{unit_text}".strip())
+    await update.message.reply_text("\n".join(lines))
 
 
 async def delete_order(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -908,6 +1007,7 @@ def main() -> None:
     application.add_handler(CommandHandler("orders", list_orders))
     application.add_handler(CommandHandler("order", show_order))
     application.add_handler(CommandHandler("fields", list_fields))
+    application.add_handler(CommandHandler("totals", totals_orders))
     application.add_handler(CommandHandler("delete_order", delete_order))
     application.add_handler(CommandHandler("export", export_orders))
     application.add_handler(CommandHandler("import", import_orders))
