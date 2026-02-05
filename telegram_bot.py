@@ -49,7 +49,7 @@ REQUIRED_FIELDS = (
 )
 
 DATE_LINE_REGEX = re.compile(r"\b(\d{4}-\d{2}-\d{2}|\d{2}[/-]\d{2}[/-]\d{2,4})\b")
-DATE_LINE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%d/%m/%y", "%d-%m-%Y", "%d-%m-%y")
+DATE_LINE_FORMATS = ("%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y", "%d/%m/%y", "%d-%m-%Y", "%d-%m-%y")
 
 LABEL_MAP = {
     "username": "username_telegram",
@@ -596,11 +596,15 @@ async def totals_orders(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         products = parse_products_list(prodotti, len(quantities))
         if not products:
             continue
-        if len(quantities) == 1 and len(products) > 1:
+        if not quantities:
+            quantities = ["1"] * len(products)
+        elif len(quantities) == 1 and len(products) > 1:
             quantities = quantities * len(products)
-        if len(quantities) != len(products) and len(products) == 1 and len(quantities) > 1:
+        elif len(quantities) < len(products):
+            quantities = quantities + ["1"] * (len(products) - len(quantities))
+        elif len(quantities) != len(products) and len(products) == 1 and len(quantities) > 1:
             quantities = [" ".join(quantities)]
-        for product, quantity in zip(products, quantities or ["1"] * len(products)):
+        for product, quantity in zip(products, quantities):
             product_name = product.strip()
             if not product_name:
                 continue
