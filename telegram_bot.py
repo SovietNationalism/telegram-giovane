@@ -48,7 +48,8 @@ REQUIRED_FIELDS = (
     "indirizzo",
 )
 
-DATE_LINE_REGEX = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
+DATE_LINE_REGEX = re.compile(r"\b(\d{4}-\d{2}-\d{2}|\d{2}[/-]\d{2}[/-]\d{2,4})\b")
+DATE_LINE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%d/%m/%y", "%d-%m-%Y", "%d-%m-%y")
 
 LABEL_MAP = {
     "username": "username_telegram",
@@ -138,6 +139,16 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
 
     def clean_unlabeled(value: str) -> str:
         return value.lstrip("•").lstrip("-").strip()
+
+    def parse_date_override(value: str) -> Optional[str]:
+        candidate = value.strip()
+        for fmt in DATE_LINE_FORMATS:
+            try:
+                parsed_date = datetime.strptime(candidate, fmt).date()
+                return parsed_date.strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+        return None
 
     def ensure_username_prefix(value: str) -> str:
         cleaned = value.strip()
@@ -237,10 +248,13 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
         line = raw_line.strip()
         if not line:
             continue
-        date_match = DATE_LINE_REGEX.search(line)
-        if date_match and date_override is None and line.replace(":", "").strip() == date_match.group(1):
-            date_override = date_match.group(1)
-            continue
+        date_candidate = clean_unlabeled(line.replace(":", ""))
+        date_match = DATE_LINE_REGEX.search(date_candidate)
+        if date_match and date_override is None:
+            parsed_date = parse_date_override(date_candidate)
+            if parsed_date:
+                date_override = parsed_date
+                continue
         if "informazioni spedizione" in line.lower():
             in_shipping_section = True
             in_order_section = False
@@ -294,7 +308,7 @@ def build_template_message() -> str:
     lines = ["Formato consigliato:"]
     for key, label in ORDER_FIELDS.items():
         lines.append(f"• {label}: ...")
-    lines.append("• 2026-02-04 (opzionale per data ordine)")
+    lines.append("• 2026-02-04 oppure 04/02/2026 (opzionale per data ordine)")
     return "\n".join(lines)
 
 
