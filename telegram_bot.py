@@ -166,9 +166,13 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
         return bool(re.search(r"\d", value))
 
     def looks_like_quantity(value: str) -> bool:
-        if quantity_regex.search(value):
-            return True
         stripped = value.strip()
+        alpha_tokens = re.findall(r"[A-Za-zÀ-ÿ]+", stripped.lower())
+        unit_tokens = {"g", "kg", "mg", "ml", "l", "pz", "pezzi", "x", "oz"}
+        if alpha_tokens and any(token not in unit_tokens for token in alpha_tokens):
+            return False
+        if quantity_regex.search(stripped):
+            return True
         if quantity_list_regex.match(stripped) or quantity_spaced_list_regex.match(stripped):
             return True
         return bool(re.fullmatch(r"\d+(?:[.,]\d+)?", stripped))
