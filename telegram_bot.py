@@ -99,6 +99,93 @@ def split_order_blocks(text: str) -> list[str]:
     return [part.strip() for part in parts if part.strip()]
 
 
+def split_numbered_blocks(text: str) -> list[str]:
+    matches = list(re.finditer(r"^\s*\d+\.\s+", text, flags=re.MULTILINE))
+    if not matches:
+        return []
+    blocks = []
+    for index, match in enumerate(matches):
+        start = match.start()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        block = text[start:end].strip()
+        if block:
+            blocks.append(block)
+    return blocks
+
+
+def parse_date_from_text(value: str) -> Optional[str]:
+    candidate = value.strip()
+    match = DATE_LINE_REGEX.search(candidate)
+    if not match:
+        return None
+    date_token = match.group(1)
+    for fmt in DATE_LINE_FORMATS:
+        try:
+            parsed_date = datetime.strptime(date_token, fmt).date()
+            return parsed_date.strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    return None
+
+
+def parse_numbered_order_block(text: str) -> Tuple[Optional[Dict[str, str]], Optional[str]]:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        return None, None
+    header = re.sub(r"^\s*\d+\.\s*", "", lines[0]).lstrip("•").strip()
+    parts = [part.strip() for part in header.split("|") if part.strip()]
+    if len(parts) < 2:
+        return None, None
+    username_raw = parts[0]
+    prodotti_raw = parts[1]
+    quantity_match = re.search(r"\(([^)]+)\)\s*$", prodotti_raw)
+    quantita = quantity_match.group(1).strip() if quantity_match else ""
+    prodotti = re.sub(r"\(([^)]+)\)\s*$", "", prodotti_raw).strip()
+    if not prodotti:
+        return None, None
+    parsed = {
+        "username_telegram": username_raw if username_raw.startswith("@") else f"@{username_raw}",
+        "prodotti": prodotti,
+    }
+    if quantita:
+        parsed["quantita"] = quantita
+    details_text = " ".join(lines[1:]).replace("•", "").strip()
+    date_override = None
+    if details_text:
+        detail_parts = [part.strip() for part in details_text.split("|") if part.strip()]
+        if detail_parts:
+            parsed.setdefault("indirizzo", detail_parts[0])
+            if len(detail_parts) > 1:
+                parsed.setdefault("nome_cognome", detail_parts[1])
+            if len(detail_parts) > 2:
+                parsed.setdefault("contatto", detail_parts[2])
+            if len(detail_parts) > 3:
+                date_override = parse_date_from_text(detail_parts[3])
+        if not parsed.get("indirizzo"):
+            parsed["indirizzo"] = details_text
+        if not parsed.get("contatto"):
+            email_match = re.search(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", details_text, re.IGNORECASE)
+            phone_match = re.search(r"\+?\d[\d\s\-().]{5,}\d", details_text)
+            if email_match:
+                parsed["contatto"] = email_match.group(0)
+            elif phone_match:
+                parsed["contatto"] = phone_match.group(0)
+        if not date_override:
+            date_override = parse_date_from_text(details_text)
+    if not parsed.get("metodo_pagamento"):
+        parsed["metodo_pagamento"] = "N/D"
+    return parsed, date_override
+
+
+def parse_numbered_orders_message(text: str) -> list[Tuple[str, Dict[str, str], Optional[str]]]:
+    parsed_blocks: list[Tuple[str, Dict[str, str], Optional[str]]] = []
+    for block in split_numbered_blocks(text):
+        parsed, date_override = parse_numbered_order_block(block)
+        if parsed:
+            parsed_blocks.append((block, parsed, date_override))
+    return parsed_blocks
+
+
 def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[str]]:
     parsed: Dict[str, str] = {}
     date_override: Optional[str] = None
@@ -139,16 +226,6 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
 
     def clean_unlabeled(value: str) -> str:
         return value.lstrip("•").lstrip("-").strip()
-
-    def parse_date_override(value: str) -> Optional[str]:
-        candidate = value.strip()
-        for fmt in DATE_LINE_FORMATS:
-            try:
-                parsed_date = datetime.strptime(candidate, fmt).date()
-                return parsed_date.strftime("%Y-%m-%d")
-            except ValueError:
-                continue
-        return None
 
     def ensure_username_prefix(value: str) -> str:
         cleaned = value.strip()
@@ -251,7 +328,7 @@ def parse_order_message(text: str) -> Tuple[Optional[Dict[str, str]], Optional[s
         date_candidate = clean_unlabeled(line.replace(":", ""))
         date_match = DATE_LINE_REGEX.search(date_candidate)
         if date_match and date_override is None:
-            parsed_date = parse_date_override(date_candidate)
+            parsed_date = parse_date_from_text(date_candidate)
             if parsed_date:
                 date_override = parsed_date
                 continue
@@ -935,12 +1012,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             reply_markup=build_orders_keyboard(order["id"]),
         )
         return
-    blocks = split_order_blocks(text)
-    parsed_blocks = []
-    for block in blocks:
-        parsed, date_override = parse_order_message(block)
-        if parsed:
-            parsed_blocks.append((block, parsed, date_override))
+    parsed_blocks = parse_numbered_orders_message(text)
+    if not parsed_blocks:
+        blocks = split_order_blocks(text)
+        for block in blocks:
+            parsed, date_override = parse_order_message(block)
+            if parsed:
+                parsed_blocks.append((block, parsed, date_override))
     if not parsed_blocks:
         return
 
