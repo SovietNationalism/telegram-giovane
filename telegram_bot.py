@@ -574,6 +574,7 @@ def build_edit_fields_keyboard(order_id: int) -> InlineKeyboardMarkup:
     rows = []
     for field_key, label in ORDER_FIELDS.items():
         rows.append([InlineKeyboardButton(label, callback_data=f"edit_field:{order_id}:{field_key}")])
+    rows.append([InlineKeyboardButton("🗑️ Elimina questo ordine", callback_data=f"delete:{order_id}")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -907,7 +908,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.message.reply_text(
             "✅ Ordine selezionato. Invia una riga per volta nel formato Campo: Valore.\n"
             "Scrivi 'fine' per terminare.\n\n"
-            + format_order(order)
+            + format_order(order),
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("🗑️ Elimina questo ordine", callback_data=f"delete:{order_id}")]]
+            ),
         )
         return
     editing_order_id = context.user_data.get("editing_order_id")
